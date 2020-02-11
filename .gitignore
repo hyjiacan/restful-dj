@@ -1,0 +1,5 @@
+/restful_dj.egg-info
+/build
+/dist
+/venv
+__pycache__
