@@ -55,6 +55,9 @@ def dispatch(request, entry, name=''):
     :return:
     """
     router = Router(request, entry, name)
+    check_result = router.check()
+    if check_result is HttpResponse:
+        return check_result
     return router.route()
 
 
@@ -76,17 +79,24 @@ class Router:
 
         # 处理映射
         # 对应的模块(文件路径）
-        module_name = self.get_route_map(entry)
+        self.module_name = self.get_route_map(entry)
 
+        self.fullname = ''
+
+    def check(self):
+        module_name = self.module_name
         # 如果 module_name 是目录，那么就查找 __init__.py 是否存在
         abs_path = os.path.join(settings.BASE_DIR, module_name.replace('.', os.path.sep))
-        if not os.path.isfile(abs_path):
+        if os.path.isdir(abs_path):
             logger.info('Entry "%s" is package, auto load module "__init__.py"' % module_name)
             module_name = '%s.%s' % (module_name, '__init__')
+        elif not os.path.exists('%s.py' % abs_path):
+            return HttpResponseNotFound()
+
         self.module_name = module_name
 
         # 完全限定名称
-        self.fullname = '%s.%s' % (module_name, func_name)
+        self.fullname = '%s.%s' % (module_name, self.func_name)
 
     def route(self):
         try:
