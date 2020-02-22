@@ -45,6 +45,18 @@ if APP_CONFIG_LOGGER in CONFIG_ROOT:
 # 函数缓存，减少 inspect 反射调用次数
 ENTRY_CACHE = {}
 
+_BEFORE_DISPATCH_HANDLER = None
+
+
+def set_before_dispatch_handler(handler):
+    """
+    设置请求分发前的处理函数
+    :param handler:
+    :return:
+    """
+    global _BEFORE_DISPATCH_HANDLER
+    _BEFORE_DISPATCH_HANDLER = handler
+
 
 def dispatch(request, entry, name=''):
     """
@@ -54,6 +66,8 @@ def dispatch(request, entry, name=''):
     :param name='' 指定的函数名称
     :return:
     """
+    if _BEFORE_DISPATCH_HANDLER is not None:
+        entry, name = _BEFORE_DISPATCH_HANDLER(request, entry, name)
     router = Router(request, entry, name)
     check_result = router.check()
     if check_result is HttpResponse:

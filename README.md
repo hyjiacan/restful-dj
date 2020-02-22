@@ -145,6 +145,32 @@ request.GET['param1']
 request.GET.param1
 ```
 
+### 分发前的处理 (可选)
+
+> Since *0.1.2*
+
+有的时候，需要在分发前对请求参数进行处理。此时可以使用 `restful.set_before_dispatch_handler` 来进行一些预处理。
+
+函数签名:
+
+```python
+def set_before_dispatch_handler(handler):
+    pass
+```
+
+用法:
+
+```python
+import restful_dj
+
+def before_dispatch_handler(request, entry, name):
+    # 可以在此处修改 request 的数据
+    # 也可以重新定义 entry 和 name
+    return entry, name
+
+restful_dj.set_before_dispatch_handler(before_dispatch_handler)
+```
+
 ### 编写中间件 (可选)
 
 注册到 *settings.py* 的 `RESTFUL_DJ.middleware` 列表中。中间件将按顺序执行。
@@ -233,3 +259,13 @@ routes = collector.collect()
 ### 403 Forbidden. CSRF verification failed. Request aborted. 
 
 移除或注释掉 *settings.py* 文件中的中间件 `'django.middleware.csrf.CsrfViewMiddleware'`
+
+## 更新记录
+
+### 0.1.2
+
+- 添加 路由请求分发前的处理支持 `restful_dj.set_before_dispatch_handler`
+
+### 0.1.1
+
+- 修复 路由分发错误 
