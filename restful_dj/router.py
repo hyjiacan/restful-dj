@@ -70,7 +70,7 @@ def dispatch(request, entry, name=''):
         entry, name = _BEFORE_DISPATCH_HANDLER(request, entry, name)
     router = Router(request, entry, name)
     check_result = router.check()
-    if check_result is HttpResponse:
+    if isinstance(check_result, HttpResponse):
         return check_result
     return router.route()
 
@@ -78,7 +78,7 @@ def dispatch(request, entry, name=''):
 class Router:
     def __init__(self, request: HttpRequest, entry: str, name: str):
         self.request = request
-
+        self.entry = entry
         method = request.method.lower()
         self.method = method
 
@@ -99,6 +99,11 @@ class Router:
 
     def check(self):
         module_name = self.module_name
+
+        if module_name is None:
+            logger.warning('Cannot find route map in RESTFUL_DJ.routes: %s' % self.entry)
+            return HttpResponseNotFound()
+
         # 如果 module_name 是目录，那么就查找 __init__.py 是否存在
         abs_path = os.path.join(settings.BASE_DIR, module_name.replace('.', os.path.sep))
         if os.path.isdir(abs_path):
