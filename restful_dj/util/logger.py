@@ -39,9 +39,9 @@ def warning(message):
 def error(message, e=None, _raise=True):
     temp = message if e is None else '%s: %s' % (message, repr(e))
     if settings.DEBUG:
-        print('\033[1;31;47m {0} \033[0m'.format(temp))
-        if e is not None:
-            print(repr(e.__traceback__.tb_frame))
+        # print('\033[1;31;47m {0} \033[0m'.format(temp))
+        # if e is not None:
+        #     print(repr(e.__traceback__.tb_frame))
         if _raise:
             raise Exception(message) if e is None else Exception('%s: %s' % (message, str(e)))
     log('ERROR', temp, e)

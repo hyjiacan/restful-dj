@@ -1,11 +1,11 @@
 import inspect
 import os
-from collections import OrderedDict
 
 from django.conf import settings
 from django.http import HttpResponseNotFound, HttpResponseServerError, HttpRequest, HttpResponse
+from .setting import CONFIG_ROUTE, CONFIG_ROOT, APP_CONFIG_ROUTE
+from .util import collector, func_util
 
-from .middleware import add_middleware
 from .util import logger
 
 # 包名称
@@ -13,39 +13,23 @@ from .util.dot_dict import DotDict
 
 NAME = 'restful_dj'
 
-APP_CONFIG_KEY = 'RESTFUL_DJ'
-APP_CONFIG_ROUTE = 'routes'
-APP_CONFIG_MIDDLEWARE = 'middleware'
-APP_CONFIG_LOGGER = 'logger'
-
-if not hasattr(settings, APP_CONFIG_KEY):
-    print('config item not found in settings.py: %s' % APP_CONFIG_KEY)
-    exit(1)
-
-# 已注册APP集合
-CONFIG_ROOT: dict = getattr(settings, APP_CONFIG_KEY)
-
-if APP_CONFIG_ROUTE not in CONFIG_ROOT:
-    print('config item not found in settings.py!%s: %s' % (APP_CONFIG_KEY, APP_CONFIG_ROUTE))
-    exit(1)
-
-CONFIG_ROUTE: list = []
-for _ in CONFIG_ROOT[APP_CONFIG_ROUTE].keys():
-    CONFIG_ROUTE.append(_)
-CONFIG_ROUTE = sorted(CONFIG_ROUTE, key=lambda i: len(i), reverse=True)
-
-if APP_CONFIG_MIDDLEWARE in CONFIG_ROOT:
-    for middleware in CONFIG_ROOT[APP_CONFIG_MIDDLEWARE]:
-        add_middleware(middleware)
-
-if APP_CONFIG_LOGGER in CONFIG_ROOT:
-    custom_logger_name = CONFIG_ROOT[APP_CONFIG_MIDDLEWARE]
-    logger.set_logger(__import__(custom_logger_name, fromlist=True))
-
 # 函数缓存，减少 inspect 反射调用次数
 ENTRY_CACHE = {}
 
 _BEFORE_DISPATCH_HANDLER = None
+
+# 线上模式时，使用固定路由
+PRODUCTION_ROUTES = {}
+
+if not settings.DEBUG:
+    for _route in collector.collect():
+        func = getattr(__import__(_route['pkg'], fromlist=True), _route['handler'])
+        args = func_util.get_args(func)
+        rid = '%s#%s' % (_route['path'], _route['method'])
+        PRODUCTION_ROUTES[rid] = DotDict({
+            'func': func,
+            'args': args
+        })
 
 
 def set_before_dispatch_handler(handler):
@@ -68,11 +52,37 @@ def dispatch(request, entry, name=''):
     """
     if _BEFORE_DISPATCH_HANDLER is not None:
         entry, name = _BEFORE_DISPATCH_HANDLER(request, entry, name)
+
+    if not settings.DEBUG:
+        return _route_for_production(request, entry, name)
+
     router = Router(request, entry, name)
     check_result = router.check()
     if isinstance(check_result, HttpResponse):
         return check_result
     return router.route()
+
+
+def _route_for_production(request, entry, name):
+    method = request.method.lower()
+    try:
+        if name == '':
+            route = PRODUCTION_ROUTES['%s#%s' % (entry, method)]
+        else:
+            route = PRODUCTION_ROUTES['%s/%s#%s' % (entry, name, method)]
+    except Exception:
+        return HttpResponseNotFound()
+
+    return _invoke_handler(request, route.func, route.args)
+
+
+def _invoke_handler(request, func, args):
+    try:
+        return func(request, args)
+    except Exception as e:
+        message = 'Router invoke exception'
+        logger.error(message, e)
+        return HttpResponseServerError('%s: %s' % (message, str(e)))
 
 
 class Router:
@@ -134,12 +144,7 @@ class Router:
         if func_define is HttpResponse:
             return func_define
 
-        try:
-            return func_define.func(self.request, func_define.args)
-        except Exception as e:
-            message = 'Router invoke exception'
-            logger.error(message, e)
-            return HttpResponseServerError('%s: %s' % (message, str(e)))
+        return _invoke_handler(self.request, func_define.func, func_define.args)
 
     def get_func_define(self):
         fullname = self.fullname
@@ -179,27 +184,6 @@ class Router:
             ENTRY_CACHE[func_name] = False
             return False
 
-        parameters = inspect.signature(func).parameters
-
-        args = OrderedDict()
-
-        for p in parameters.keys():
-            spec = DotDict()
-            # 类型
-            annotation = parameters.get(p).annotation
-            default = parameters.get(p).default
-            if default != inspect._empty:
-                spec['default'] = default
-
-            # 有默认值时，若未指定类型，则使用默认值的类型
-            if annotation == inspect._empty:
-                if default is not None and default != inspect._empty:
-                    spec['annotation'] = type(default)
-            else:
-                spec['annotation'] = annotation
-
-            args[p] = spec
-
         ENTRY_CACHE[fullname] = DotDict({
             'func': func,
             # 该函数的参数列表
@@ -207,7 +191,7 @@ class Router:
             #     'annotation': '类型', 当未指定类型时，无此项
             #     'default': '默认值'，当未指定默认值时，无此项
             # }
-            'args': args
+            'args': func_util.get_args(func)
         })
 
         return ENTRY_CACHE[fullname]
