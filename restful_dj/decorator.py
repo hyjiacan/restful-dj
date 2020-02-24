@@ -65,6 +65,9 @@ def route(module=None, name=None, permission=True, ajax=True, referer=None, **kw
 
             actual_args = [request]
 
+            import inspect
+            signature = inspect.signature(func)
+
             # 规定：第一个参数只能是  request，所以此处直接跳过第一个参数
             position = 0
             for arg_name in args.keys():
@@ -75,12 +78,38 @@ def route(module=None, name=None, permission=True, ajax=True, referer=None, **kw
                 arg_spec = args.get(arg_name)
 
                 if method in ['delete', 'get']:
-                    val = _get_arg_from_get(request, arg_name, arg_spec)
-                    actual_args.append(val)
+                    use_default, arg_value = _get_value(request.GET, arg_name, arg_spec, signature)
+                else:
+                    use_default, arg_value = _get_value(request.POST, arg_name, arg_spec, signature, request.JSON)
+
+                # 未找到参数
+                if use_default is None:
+                    return
+
+                # 使用默认值
+                if use_default is True:
+                    actual_args.append(arg_value)
                     continue
 
-                val = _get_arg_from_post(request, arg_name, arg_spec)
-                actual_args.append(val)
+                # 未指定类型
+                if 'annotation' not in arg_spec:
+                    actual_args.append(arg_value)
+                    continue
+
+                # 检查类型是否一致 #
+
+                # 类型一致，直接使用
+                if isinstance(arg_value, arg_spec.annotation):
+                    actual_args.append(arg_value)
+                    continue
+
+                # 类型不一致，尝试转换类型
+                # 转换失败时，会抛出异常
+                try:
+                    actual_args.append(arg_spec.annotation(arg_value))
+                except Exception as e:
+                    logger.error(
+                        'Parameter type of "%s" mismatch, signature: %s' % (arg_name, _get_signature(signature)), e)
 
             result = func(*actual_args)
 
@@ -119,44 +148,46 @@ def _handle_json_params(request):
         logger.warning('Deserialize request body fail: %s' % str(e))
 
 
-def _get_arg_from_get(request, arg_name, arg_spec):
-    if arg_name not in request.GET:
-        if 'default' in arg_spec:
-            return arg_spec.default
-
-        # 缺少无默认值的参数
-        logger.error('Missing parameter "%s"' % arg_name)
-        return
-
-    # 参数存在
-    arg_value = request.GET[arg_name][0]
-
-    if 'annotation' not in arg_spec:
-        return arg_value
-
-    # TODO 检查是否可以转换类型
-    # 暂时不处理
-    return arg_value
+def _get_signature(signature):
+    # 第一个总是  request,去掉
+    return '(%s)' % ','.join(str(signature).strip('(').strip(')').split(',')[1:]).strip()
 
 
-def _get_arg_from_post(request, arg_name, arg_spec):
-    if arg_name not in request.POST and arg_name not in request.JSON:
-        if 'default' in arg_spec:
-            return arg_spec.default
+def _parameter_is_missing(signature, arg_name):
+    logger.error('Missing required parameter "%s", signature: %s' % (arg_name, _get_signature(signature)))
 
-        # 缺少无默认值的参数
-        logger.error('Missing parameter "%s"' % arg_name)
-        return
 
-    # 参数存在
-    arg_value = request.JSON[arg_name] if arg_name in request.JSON else request.POST[arg_name][0]
+def _get_value(data: dict, name: str, arg_spec: DotDict, signature, backup: dict = None):
+    """
 
-    if 'annotation' not in arg_spec:
-        return arg_value
+    :param data:
+    :param name:
+    :param arg_spec:
+    :param signature:
+    :return: True 表示使用默认值 False 表示未使用默认值 None 表示无值
+    """
+    # 内容变量时，移除末尾的 _ 符号
+    inner_name = name.rstrip('_')
+    if name in data:
+        return False, data[name][0]
 
-    # TODO 检查是否可以转换类型
-    # 暂时不处理
-    return arg_value
+    if inner_name in data:
+        return False, data[inner_name][0]
+
+    if backup is not None:
+        if name in backup:
+            return False, backup[name][0]
+
+        if inner_name in backup:
+            return False, backup[inner_name][0]
+
+    # 尝试使用默认值
+    if 'default' in arg_spec:
+        return True, arg_spec.default
+
+    # 缺少无默认值的参数
+    _parameter_is_missing(signature, name)
+    return None, None
 
 
 def _wrap_http_response(data):

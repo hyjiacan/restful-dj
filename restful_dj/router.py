@@ -139,7 +139,7 @@ class Router:
         except Exception as e:
             message = 'Router invoke exception'
             logger.error(message, e)
-            return HttpResponseServerError()
+            return HttpResponseServerError('%s: %s' % (message, str(e)))
 
     def get_func_define(self):
         fullname = self.fullname
@@ -193,7 +193,7 @@ class Router:
 
             # 有默认值时，若未指定类型，则使用默认值的类型
             if annotation == inspect._empty:
-                if default != inspect._empty:
+                if default is not None and default != inspect._empty:
                     spec['annotation'] = type(default)
             else:
                 spec['annotation'] = annotation

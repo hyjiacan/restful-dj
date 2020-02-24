@@ -75,13 +75,16 @@ def get(request, param1, param2=None, param3: int =5):
     }
 
 @route(module='module-name', name='name')
-def get_param(request, param1, param2=None, param3: int =5):
+def get_param(request, param1, from_=None, param3 =5):
     return {
         'param1': param1, 
-        'param2': param2, 
+        'from': from_, 
         'param3': param3, 
     }
 ```
+
+> 当代码中需要使用关键字作为名称时，请在名称后添加 `_`，此时前端请求时，`_` 符号可省略，如:
+> `from_` 在请求时可写作 `from=test` （`from_=test` 亦可）。
 
 再写配置
 
@@ -106,6 +109,12 @@ ajax.get('test.demo/param?param1=1&param2=2&param3=3')
 ```
 
 路由可以返回任何类型的数据。
+
+> 路由会自动根据函数定义来判断传入参数的类型是否合法。
+> 比如前面示例中的 `param3: int =5`，会根据声明类型 `int` 去判断传入类型，
+> 如果传入了字符串类型的数值，路由会自动转换成数值类型。
+> 另外，如果设置了 `None` 以外的默认值，那么路由会根据默认值的类型自动去判断，
+> 此时可以省略参数类型，如: `param3: int =5` 省略为 `param3=5`
 
 ### 装饰器 `route`
 
@@ -254,6 +263,9 @@ routes = collector.collect()
 
 在发布产品到线上时，通过此方法将自动产生 Django 的路由配置文件，以提高线上性能。
 
+## 待办事项
+
+
 ## 常见问题
 
 ### 403 Forbidden. CSRF verification failed. Request aborted. 
@@ -261,6 +273,13 @@ routes = collector.collect()
 移除或注释掉 *settings.py* 文件中的中间件 `'django.middleware.csrf.CsrfViewMiddleware'`
 
 ## 更新记录
+
+### 0.1.3
+
+- 优化 日志输出
+- 参数名称以 `_` 结束时，表示此名称可能是关键字，此时需要匹配无此后缀的变量名，如： `from_` 应该匹配为  `from`
+- 检查传入的参数类型与声明是否一致（如果有声明）
+- 参数错误时，在**调试模式**下显示更友好的提示: 展示原函数参数定义
 
 ### 0.1.2
 
