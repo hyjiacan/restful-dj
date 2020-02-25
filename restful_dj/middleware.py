@@ -65,9 +65,9 @@ class MiddlewareBase:
         对 response 数据进行预处理。一般用于响应的数据的编码
         :param request:
         :param response:
-        :return:
+        :return: 应该始终返回一个  HttpResponse
         """
-        pass
+        return response
 
     def check_login_status(self, request, meta):
         """
@@ -86,6 +86,15 @@ class MiddlewareBase:
         :return: True|False|HttpResponse 已经登录时返回 True，否则返回 False，HttpResponse 响应
         """
         return True
+
+    def check_params(self, request, meta):
+        """
+        在调用路由函数前，对参数进行处理，使用时请覆写此方法
+        :param request:
+        :param meta:
+        :return: 返回 HttpResponse 以终止请求
+        """
+        pass
 
 
 class MiddlewareManager:
@@ -166,6 +175,31 @@ class MiddlewareManager:
                 if result is not True:
                     return result
         return True
+
+    def params(self):
+        """
+        在调用路由函数前，对参数进行处理
+        :param request:
+        :return:
+        """
+        # 对 response 进行处理
+        for middleware in MIDDLEWARE_INSTANCE_LIST:
+            if not hasattr(middleware, 'check_params'):
+                continue
+            result = middleware.check_params(self.request, {
+                'id': self.id,
+                'handler': self.handler,
+                'module': self.module,
+                'name': self.name
+            })
+
+            # 没有返回结果
+            if result is None:
+                continue
+
+            # 如果路由中间件有返回结果
+            if isinstance(result, HttpResponse):
+                return result
 
     def end(self, response):
         """

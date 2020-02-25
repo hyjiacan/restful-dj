@@ -51,6 +51,12 @@ def route(module=None, name=None, permission=True, ajax=True, referer=None, **kw
             # 处理后可能会在 request 上添加一个 json 的项，此项存放着json格式的 body 内容
             _handle_json_params(request)
 
+            result = mgr.params()
+
+            # 返回了 HttpResponse ， 直接返回此对象
+            if isinstance(result, HttpResponse):
+                return result
+
             # 调用路由处理函数
             arg_len = len(args)
             method = request.method.lower()
@@ -140,9 +146,9 @@ def _handle_json_params(request):
         return
 
     try:
-        if body is str:
+        if isinstance(body, bytes) or isinstance(body, str):
             request.JSON = DotDict(json.loads(body))
-        elif body is dict or body is list:
+        elif isinstance(body, dict) or isinstance(body, list):
             request.JSON = body
     except Exception as e:
         logger.warning('Deserialize request body fail: %s' % str(e))
