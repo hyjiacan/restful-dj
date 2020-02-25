@@ -173,19 +173,20 @@ def _get_value(data: dict, name: str, arg_spec: DotDict, signature, backup: dict
     :return: True 表示使用默认值 False 表示未使用默认值 None 表示无值
     """
     # 内容变量时，移除末尾的 _ 符号
+    # 内容变量时，移除末尾的 _ 符号
     inner_name = name.rstrip('_')
     if name in data:
-        return False, data[name][0]
+        return False, data[name]
 
     if inner_name in data:
-        return False, data[inner_name][0]
+        return False, data[inner_name]
 
     if backup is not None:
         if name in backup:
-            return False, backup[name][0]
+            return False, backup[name]
 
         if inner_name in backup:
-            return False, backup[inner_name][0]
+            return False, backup[inner_name]
 
     # 尝试使用默认值
     if 'default' in arg_spec:
