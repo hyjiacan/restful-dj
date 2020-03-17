@@ -1,7 +1,7 @@
 import json
 from functools import wraps
 
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse, JsonResponse, HttpResponseBadRequest
 
 from .middleware import MiddlewareManager
 from .util.dot_dict import DotDict
@@ -41,30 +41,30 @@ def route(module=None, name=None, permission=True, ajax=True, referer=None, **kw
 
             # 返回了 HttpResponse ， 直接返回此对象
             if isinstance(result, HttpResponse):
-                return result
+                return mgr.end(result)
 
             # 返回了 False，表示未授权访问
             if result is False:
-                return HttpResponseUnauthorized()
+                return mgr.end(HttpResponseUnauthorized())
 
             # 处理请求中的json参数
             # 处理后可能会在 request 上添加一个 json 的项，此项存放着json格式的 body 内容
-            _handle_json_params(request)
+            _process_json_params(request)
 
             result = mgr.params()
 
             # 返回了 HttpResponse ， 直接返回此对象
             if isinstance(result, HttpResponse):
-                return result
+                return mgr.end(result)
 
             # 调用路由处理函数
             arg_len = len(args)
             method = request.method.lower()
             if arg_len == 0:
-                return func()
+                return mgr.end(_wrap_http_response(func()))
 
             if arg_len == 1:
-                return func(request)
+                return mgr.end(_wrap_http_response(func(request)))
 
             # 多个参数，自动从 queryString, POST 或 json 中获取
             # 匹配参数
@@ -90,7 +90,7 @@ def route(module=None, name=None, permission=True, ajax=True, referer=None, **kw
 
                 # 未找到参数
                 if use_default is None:
-                    return
+                    return mgr.end(HttpResponseBadRequest('Parameter "%s" is required' % arg_name))
 
                 # 使用默认值
                 if use_default is True:
@@ -114,19 +114,20 @@ def route(module=None, name=None, permission=True, ajax=True, referer=None, **kw
                 try:
                     actual_args.append(arg_spec.annotation(arg_value))
                 except Exception as e:
-                    logger.error(
-                        'Parameter type of "%s" mismatch, signature: %s' % (arg_name, _get_signature(signature)), e)
+                    msg = 'Parameter type of "%s" mismatch, signature: %s' % (arg_name, _get_signature(signature))
+                    logger.warning(msg)
+                    return mgr.end(HttpResponseBadRequest(msg))
 
             result = func(*actual_args)
 
-            return _wrap_http_response(mgr.end(result))
+            return mgr.end(_wrap_http_response(result))
 
         return caller
 
     return invoke_route
 
 
-def _handle_json_params(request):
+def _process_json_params(request):
     """
     参数处理
     :return:
