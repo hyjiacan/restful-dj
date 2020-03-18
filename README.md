@@ -137,9 +137,9 @@ def route(module=None, name=None, permission=True, ajax=True, referer=None, **kw
 
 > 这些参数都会被传递给中间件的 `check_login_status` 以及 `check_user_permission` 函数(参数 `meta`)。
 
-同时，此装饰器会自动尝试将 `request.body` 处理成 JSON 格式，并且添加到 `request.JSON` 属性上。
+同时，此装饰器会自动尝试将 `request.body` 处理成 JSON 格式，并且添加到 `request.B` 属性上。
 
-另外，此装饰器会自动将 `request.GET` 和 `request.POST` 处理成为可以通过点号直接访问的对象。例：
+另外，此装饰器会自动将 `request.GET` 和 `request.POST` 处理成为可以通过点号直接访问的对象，分别添加到 `request.G` 和 `request.P` 上。例：
 
 ```python
 # 原始数据
@@ -152,7 +152,7 @@ request.GET = {
 request.GET['param1']
 
 # 而在经过装饰器的处理后，可以这样访问
-request.GET.param1
+request.G.param1
 ```
 
 ### 分发前的处理 (可选)
@@ -277,6 +277,10 @@ routes = collector.collect()
 移除或注释掉 *settings.py* 文件中的中间件 `'django.middleware.csrf.CsrfViewMiddleware'`
 
 ## 更新记录
+
+### 0.2.0
+
+- 优化 请求参数解析
 
 ### 0.1.5
 

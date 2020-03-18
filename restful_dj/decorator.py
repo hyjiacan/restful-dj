@@ -84,9 +84,9 @@ def route(module=None, name=None, permission=True, ajax=True, referer=None, **kw
                 arg_spec = args.get(arg_name)
 
                 if method in ['delete', 'get']:
-                    use_default, arg_value = _get_value(request.GET, arg_name, arg_spec, signature)
+                    use_default, arg_value = _get_value(request.G, arg_name, arg_spec, signature)
                 else:
-                    use_default, arg_value = _get_value(request.POST, arg_name, arg_spec, signature, request.JSON)
+                    use_default, arg_value = _get_value(request.P, arg_name, arg_spec, signature, request.B)
 
                 # 未找到参数
                 if use_default is None:
@@ -132,11 +132,11 @@ def _process_json_params(request):
     参数处理
     :return:
     """
-    request.JSON = DotDict()
+    request.B = DotDict()
 
     if request.content_type != 'application/json':
-        request.GET = DotDict(request.GET)
-        request.POST = DotDict(request.POST)
+        request.G = DotDict(request.GET.dict())
+        request.P = DotDict(request.POST.dict())
         return
 
     # 如果请求是json类型，就先处理一下
@@ -148,9 +148,9 @@ def _process_json_params(request):
 
     try:
         if isinstance(body, bytes) or isinstance(body, str):
-            request.JSON = DotDict(json.loads(body))
+            request.B = DotDict(json.loads(body))
         elif isinstance(body, dict) or isinstance(body, list):
-            request.JSON = body
+            request.B = body
     except Exception as e:
         logger.warning('Deserialize request body fail: %s' % str(e))
 
