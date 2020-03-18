@@ -133,6 +133,8 @@ def _process_json_params(request):
     :return:
     """
     request.B = DotDict()
+    request.G = DotDict()
+    request.P = DotDict()
 
     if request.content_type != 'application/json':
         request.G = DotDict(request.GET.dict())
