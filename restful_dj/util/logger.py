@@ -43,5 +43,5 @@ def error(message, e=None, _raise=True):
         # if e is not None:
         #     print(repr(e.__traceback__.tb_frame))
         if _raise:
-            raise Exception(message) if e is None else Exception('%s: %s' % (message, str(e)))
+            raise Exception(message) if e is None else Exception(e, message)
     log('ERROR', temp, e)
