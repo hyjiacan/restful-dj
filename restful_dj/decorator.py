@@ -137,8 +137,8 @@ def _process_json_params(request):
     request.P = DotDict()
 
     if request.content_type != 'application/json':
-        request.G = DotDict(request.GET.dict())
-        request.P = DotDict(request.POST.dict())
+        request.G = DotDict.parse(request.GET.dict())
+        request.P = DotDict.parse(request.POST.dict())
         return
 
     # 如果请求是json类型，就先处理一下
@@ -150,9 +150,9 @@ def _process_json_params(request):
 
     try:
         if isinstance(body, bytes) or isinstance(body, str):
-            request.B = DotDict(json.loads(body))
+            request.B = DotDict.parse(json.loads(body))
         elif isinstance(body, dict) or isinstance(body, list):
-            request.B = body
+            request.B = DotDict.parse(body)
     except Exception as e:
         logger.warning('Deserialize request body fail: %s' % str(e))
 

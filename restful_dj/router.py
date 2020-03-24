@@ -26,7 +26,7 @@ if not settings.DEBUG:
         func = getattr(__import__(_route['pkg'], fromlist=True), _route['handler'])
         args = func_util.get_args(func)
         rid = '%s#%s' % (_route['path'], _route['method'])
-        PRODUCTION_ROUTES[rid] = DotDict({
+        PRODUCTION_ROUTES[rid] = DotDict.parse({
             'func': func,
             'args': args
         })
@@ -184,7 +184,7 @@ class Router:
             ENTRY_CACHE[func_name] = False
             return False
 
-        ENTRY_CACHE[fullname] = DotDict({
+        ENTRY_CACHE[fullname] = DotDict.parse({
             'func': func,
             # 该函数的参数列表
             # 'name': {
