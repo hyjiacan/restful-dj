@@ -61,10 +61,10 @@ def route(module=None, name=None, permission=True, ajax=True, referer=None, **kw
             arg_len = len(args)
             method = request.method.lower()
             if arg_len == 0:
-                return mgr.end(_wrap_http_response(func()))
+                return mgr.end(_wrap_http_response(mgr, func()))
 
             if arg_len == 1:
-                return mgr.end(_wrap_http_response(func(request)))
+                return mgr.end(_wrap_http_response(mgr, func(request)))
 
             # 多个参数，自动从 queryString, POST 或 json 中获取
             # 匹配参数
@@ -120,7 +120,7 @@ def route(module=None, name=None, permission=True, ajax=True, referer=None, **kw
 
             result = func(*actual_args)
 
-            return mgr.end(_wrap_http_response(result))
+            return mgr.end(_wrap_http_response(mgr, result))
 
         return caller
 
@@ -200,12 +200,16 @@ def _get_value(data: dict, name: str, arg_spec: DotDict, signature, backup: dict
     return None, None
 
 
-def _wrap_http_response(data):
+def _wrap_http_response(mgr, data):
     """
     将数据包装成 HttpResponse 返回
     :param data:
     :return:
     """
+
+    # 处理返回函数
+    data = mgr.process_return(data)
+
     if data is None:
         return HttpResponse()
 

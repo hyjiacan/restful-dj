@@ -96,6 +96,15 @@ class MiddlewareBase:
         """
         pass
 
+    def process_return_value(self, request, meta, data):
+        """
+        在路由函数调用后，对其返回值进行处理
+        :param request:
+        :param meta:
+        :param data:
+        :return:
+        """
+        return data
 
 class MiddlewareManager:
     """
@@ -200,6 +209,23 @@ class MiddlewareManager:
             # 如果路由中间件有返回结果
             if isinstance(result, HttpResponse):
                 return result
+
+    def process_return(self, data):
+        """
+        在路由函数调用后，对其返回值进行处理
+        :param data:
+        :return:
+        """
+        for middleware in MIDDLEWARE_INSTANCE_LIST:
+            if not hasattr(middleware, 'process_return_value'):
+                continue
+            data = middleware.process_return_value(self.request, {
+                'id': self.id,
+                'handler': self.handler,
+                'module': self.module,
+                'name': self.name
+            }, data)
+        return data
 
     def end(self, response):
         """

@@ -229,6 +229,16 @@ class MiddlewareClass:
         :return: True|False|HttpResponse 已经登录时返回 True，否则返回 False，HttpResponse 响应
         """
         return True
+
+    def process_return_value(self, request, meta, data):
+        """
+        在路由函数调用后，对其返回值进行处理
+        :param request:
+        :param meta:
+        :param data:
+        :return:
+        """
+        return data
 ```
 
 ### 设置日志记录器 (可选)
