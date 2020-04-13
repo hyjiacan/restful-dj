@@ -16,8 +16,6 @@
 pip install restful-dj
 ```
 
-> 此包依赖 Django2/3，但未写入依赖列表中。
-
 ## 使用
 
 此包提供的包（package）名称为 `restful_dj`，所有用到的模块都在此包下引入。
@@ -132,9 +130,9 @@ def route(module=None, name=None, permission=True, ajax=True, referer=None, **kw
 - `permission` 设置此路由是否有权限控制
 - `ajax` 设置此路由是否仅允许 **ajax** 访问 *保留参数*
 - `referer` 设置此路由允许的 **referer** 地址 *保留参数*
-- `**kwargs` *保留参数*
+- `**kwargs` *额外参数*
 
-> 这些参数都会被传递给中间件的 `check_login_status` 以及 `check_user_permission` 函数(参数 `meta`)。
+> 这些参数都会被传递给中间件的 `check_login_status` 以及 `check_user_permission` 函数(参数 `meta`)。详细见 [RouteMeta](#RouteMeta)
 
 同时，此装饰器会自动尝试将 `request.body` 处理成 JSON 格式，并且添加到 `request.B` 属性上。
 
@@ -180,6 +178,45 @@ restful_dj.set_before_dispatch_handler(before_dispatch_handler)
 
 ### 编写中间件 (可选)
 
+#### RouteMeta
+
+路由元数据。
+
+```python
+class RouteMeta:
+    @property
+    def handler(self):
+        pass
+
+    @property
+    def id(self):
+        pass
+
+    @property
+    def module(self):
+        pass
+
+    @property
+    def name(self):
+        pass
+
+    @property
+    def permission(self):
+        pass
+
+    @property
+    def ajax(self):
+        pass
+
+    @property
+    def referer(self):
+        pass
+
+    @property
+    def kwargs(self):
+        pass
+```
+
 注册到 *settings.py* 的 `RESTFUL_DJ.middleware` 列表中。中间件将按顺序执行。
 
 **需要注意**： 所有的中间件在程序运行期间共享一个实例。
@@ -187,58 +224,77 @@ restful_dj.set_before_dispatch_handler(before_dispatch_handler)
 **path.to.MiddlewareClass**
 
 ```python
+from restful_dj import RouteMeta 
+
 class MiddlewareClass:
     """
     路由中间件
     """
 
-    def __init__(self):
-        pass
-
-    def request_process(self, request):
+    def request_process(self, request, meta: RouteMeta, **kwargs):
         """
         对 request 对象进行预处理。一般用于请求的数据的解码
         :param request:
+        :param meta:
+        :param kwargs:
         :return: 返回 HttpResponse 以终止请求
         """
         pass
 
-    def response_process(self, request, response):
+    def response_process(self, request, meta: RouteMeta, **kwargs):
         """
         对 response 数据进行预处理。一般用于响应的数据的编码
+        :rtype: HttpResponse
+        :param meta:
         :param request:
-        :param response:
-        :return:
+        :param kwargs: 始终会有一个 'response' 的项，表示返回的 HttpResponse
+        :return: 应该始终返回一个  HttpResponse
+        """
+        assert 'response' in kwargs
+        return kwargs['response']
+
+    def check_login_status(self, request, meta: RouteMeta, **kwargs):
+        """
+        检查用户的登录状态，使用时请覆写此方法
+        :rtype: bool | HttpResponse
+        :param request:
+        :param meta:
+        :param kwargs:
+        :return: True|False|HttpResponse 已经登录时返回 True，否则返回 False，HttpResponse 响应
+        """
+        return True
+
+    def check_user_permission(self, request, meta: RouteMeta, **kwargs):
+        """
+        检查用户是否有权限访问此路由，使用时请覆写此方法
+        :rtype: bool | HttpResponse
+        :param request:
+        :param meta:
+        :param kwargs:
+        :return: True|False|HttpResponse 已经登录时返回 True，否则返回 False，HttpResponse 响应
+        """
+        return True
+
+    def check_params(self, request, meta: RouteMeta, **kwargs):
+        """
+        在调用路由函数前，对参数进行处理，使用时请覆写此方法
+        :param request:
+        :param meta:
+        :param kwargs:
+        :return: 返回 HttpResponse 以终止请求
         """
         pass
 
-    def check_login_status(self, request, meta):
-        """
-        检查用户的登录状态，使用时请覆写此方法
-        :param request:
-        :param meta:
-        :return: True|False|HttpResponse 已经登录时返回 True，否则返回 False，HttpResponse 响应
-        """
-        return True
-
-    def check_user_permission(self, request, meta):
-        """
-        检查用户是否有权限访问此路由，使用时请覆写此方法
-        :param request:
-        :param meta:
-        :return: True|False|HttpResponse 已经登录时返回 True，否则返回 False，HttpResponse 响应
-        """
-        return True
-
-    def process_return_value(self, request, meta, data):
+    def process_return_value(self, request, meta: RouteMeta, **kwargs):
         """
         在路由函数调用后，对其返回值进行处理
         :param request:
         :param meta:
-        :param data:
-        :return:
+        :param kwargs: 始终会有一个 'data' 的项，表示返回的原始数据
+        :return: 返回 HttpResponse 以终止执行
         """
-        return data
+        assert 'data' in kwargs
+        return kwargs['data']
 ```
 
 ### 设置日志记录器 (可选)

@@ -3,6 +3,7 @@ from functools import wraps
 
 from django.http import HttpResponse, JsonResponse, HttpResponseBadRequest
 
+from .meta import RouteMeta
 from .middleware import MiddlewareManager
 from .util.dot_dict import DotDict
 
@@ -28,13 +29,19 @@ def route(module=None, name=None, permission=True, ajax=True, referer=None, **kw
         def caller(request, args):
             func_name = func.__name__
 
-            mgr = MiddlewareManager()
-            mgr.id = '{0}_{1}'.format(func.__module__.replace('_', '__').replace('.', '_'), func_name)
-            mgr.handler = func_name
-            mgr.module = module
-            mgr.name = name
-            mgr.permission_required = permission
-            mgr.request = request
+            mgr = MiddlewareManager(
+                request,
+                RouteMeta(
+                    func_name,
+                    id='{0}_{1}'.format(func.__module__.replace('_', '__').replace('.', '_'), func_name),
+                    module=module,
+                    name=name,
+                    permission=permission,
+                    ajax=ajax,
+                    referer=referer,
+                    kwargs=kwargs,
+                )
+            )
 
             # 调用中间件以检查登录状态以及用户权限
             result = mgr.invoke()
