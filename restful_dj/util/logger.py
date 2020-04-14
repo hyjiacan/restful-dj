@@ -59,5 +59,5 @@ def error(message, e=None, _raise=True):
 
     # 修改异常消息
     new_msg = '%s: %s' % (message, e.args[0]) if len(e.args) > 0 else message
-    e.args = tuple(new_msg, )
+    e.args = (new_msg,)
     raise e

@@ -156,9 +156,9 @@ def _process_json_params(request):
         return
 
     try:
-        if isinstance(body, bytes) or isinstance(body, str):
+        if isinstance(body, (bytes, str)):
             request.B = DotDict.parse(json.loads(body))
-        elif isinstance(body, dict) or isinstance(body, list):
+        elif isinstance(body, (dict, list)):
             request.B = DotDict.parse(body)
     except Exception as e:
         logger.warning('Deserialize request body fail: %s' % str(e))

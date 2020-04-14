@@ -3,7 +3,6 @@ import os
 
 from django.conf import settings
 from django.http import HttpResponseNotFound, HttpResponseServerError, HttpRequest, HttpResponse
-from .setting import CONFIG_ROUTE, CONFIG_ROOT, APP_CONFIG_ROUTE
 from .util import collector, func_util
 
 from .util import logger
@@ -80,7 +79,7 @@ def _invoke_handler(request, func, args):
     try:
         return func(request, args)
     except Exception as e:
-        message = 'Router invoke exception'
+        message = 'Router invoke error'
         logger.error(message, e)
         return HttpResponseServerError('%s: %s' % (message, str(e)))
 
@@ -210,6 +209,7 @@ class Router:
         return False
 
     def get_route_map(self, route_path):
+        from .setting import CONFIG_ROUTE, CONFIG_ROOT, APP_CONFIG_ROUTE
         # 命中
         hit_route = None
         for root_path in CONFIG_ROUTE:

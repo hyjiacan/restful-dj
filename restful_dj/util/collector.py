@@ -8,10 +8,9 @@ from os import path
 
 from django.conf import settings
 
-from ..setting import APP_CONFIG_ROUTE, CONFIG_ROOT
-
 
 def _get_route_map():
+    from ..setting import APP_CONFIG_ROUTE, CONFIG_ROOT
     if APP_CONFIG_ROUTE not in CONFIG_ROOT:
         raise Exception('restful-dj: route map setting not found')
 

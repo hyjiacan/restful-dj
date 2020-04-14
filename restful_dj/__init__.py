@@ -8,6 +8,8 @@ from .router import set_before_dispatch_handler
 
 from .util import collector
 
+from .util.dot_dict import DotDict
+
 urls = (
     [
         path('<str:entry>', router.dispatch),
@@ -19,6 +21,7 @@ urls = (
 
 __all__ = [
     'collector',
+    'DotDict',
     'router',
     'RouteMeta',
     'set_before_dispatch_handler'
