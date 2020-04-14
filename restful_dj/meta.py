@@ -3,7 +3,7 @@ class RouteMeta:
     路由元数据
     """
 
-    def __init__(self, handler, id=None, module=None, name=None, permission=True, ajax=True, referer=None, **kwargs):
+    def __init__(self, handler, id=None, module=None, name=None, permission=True, ajax=True, referer=None, kwargs=None):
         self._handler = handler
         self._id = id
         self._module = module
@@ -11,7 +11,7 @@ class RouteMeta:
         self._permission = permission
         self._ajax = ajax
         self._referer = referer
-        self._kwargs = kwargs
+        self._kwargs = {} if kwargs is None else kwargs
 
     @property
     def handler(self):

@@ -38,10 +38,26 @@ def warning(message):
 
 def error(message, e=None, _raise=True):
     temp = message if e is None else '%s: %s' % (message, repr(e))
-    if settings.DEBUG:
-        # print('\033[1;31;47m {0} \033[0m'.format(temp))
-        # if e is not None:
-        #     print(repr(e.__traceback__.tb_frame))
-        if _raise:
-            raise Exception(message) if e is None else Exception(e, message)
-    log('ERROR', temp, e)
+
+    # 非开发模式时，始终不会输出堆栈信息
+    if not settings.DEBUG:
+        log('ERROR', temp, e)
+        return
+
+    # print('\033[1;31;47m {0} \033[0m'.format(temp))
+    # if e is not None:
+    #     print(repr(e.__traceback__.tb_frame))
+
+    # 不需要抛出异常
+    if not _raise:
+        log('ERROR', temp, e)
+        return
+
+    # 抛出新的异常
+    if e is None:
+        raise Exception(message)
+
+    # 修改异常消息
+    new_msg = '%s: %s' % (message, e.args[0]) if len(e.args) > 0 else message
+    e.args = tuple(new_msg, )
+    raise e
