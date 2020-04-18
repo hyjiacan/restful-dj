@@ -24,5 +24,6 @@ __all__ = [
     'DotDict',
     'router',
     'RouteMeta',
-    'set_before_dispatch_handler'
+    'set_before_dispatch_handler',
+    'urls'
 ]

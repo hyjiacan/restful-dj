@@ -1,7 +1,7 @@
 import json
 from functools import wraps
 
-from django.http import HttpResponse, JsonResponse, HttpResponseBadRequest
+from django.http import HttpResponse, JsonResponse, HttpResponseBadRequest, HttpRequest
 
 from .meta import RouteMeta
 from .middleware import MiddlewareManager
@@ -66,7 +66,6 @@ def route(module=None, name=None, permission=True, ajax=True, referer=None, **kw
 
             # 调用路由处理函数
             arg_len = len(args)
-            method = request.method.lower()
             if arg_len == 0:
                 return mgr.end(_wrap_http_response(mgr, func()))
 
@@ -76,54 +75,10 @@ def route(module=None, name=None, permission=True, ajax=True, referer=None, **kw
             # 多个参数，自动从 queryString, POST 或 json 中获取
             # 匹配参数
 
-            actual_args = [request]
+            actual_args = _get_actual_args(request, func, args)
 
-            import inspect
-            signature = inspect.signature(func)
-
-            # 规定：第一个参数只能是  request，所以此处直接跳过第一个参数
-            position = 0
-            for arg_name in args.keys():
-                position += 1
-                if position == 1:
-                    continue
-
-                arg_spec = args.get(arg_name)
-
-                if method in ['delete', 'get']:
-                    use_default, arg_value = _get_value(request.G, arg_name, arg_spec, signature)
-                else:
-                    use_default, arg_value = _get_value(request.P, arg_name, arg_spec, signature, request.B)
-
-                # 未找到参数
-                if use_default is None:
-                    return mgr.end(HttpResponseBadRequest('Parameter "%s" is required' % arg_name))
-
-                # 使用默认值
-                if use_default is True:
-                    actual_args.append(arg_value)
-                    continue
-
-                # 未指定类型
-                if 'annotation' not in arg_spec:
-                    actual_args.append(arg_value)
-                    continue
-
-                # 检查类型是否一致 #
-
-                # 类型一致，直接使用
-                if isinstance(arg_value, arg_spec.annotation):
-                    actual_args.append(arg_value)
-                    continue
-
-                # 类型不一致，尝试转换类型
-                # 转换失败时，会抛出异常
-                try:
-                    actual_args.append(arg_spec.annotation(arg_value))
-                except Exception as e:
-                    msg = 'Parameter type of "%s" mismatch, signature: %s' % (arg_name, _get_signature(signature))
-                    logger.warning(msg)
-                    return mgr.end(HttpResponseBadRequest(msg))
+            if isinstance(actual_args, HttpResponse):
+                return mgr.end(actual_args)
 
             result = func(*actual_args)
 
@@ -205,6 +160,73 @@ def _get_value(data: dict, name: str, arg_spec: DotDict, signature, backup: dict
     # 缺少无默认值的参数
     _parameter_is_missing(signature, name)
     return None, None
+
+
+def _get_actual_args(request: HttpRequest, func, args):
+    method = request.method.lower()
+    actual_args = [request]
+
+    import inspect
+    signature = inspect.signature(func)
+
+    # 规定：第一个参数只能是  request，所以此处直接跳过第一个参数
+    position = 0
+    for arg_name in args.keys():
+        position += 1
+        if position == 1:
+            continue
+
+        arg_spec = args.get(arg_name)
+
+        if method in ['delete', 'get']:
+            use_default, arg_value = _get_value(request.G, arg_name, arg_spec, signature)
+        else:
+            use_default, arg_value = _get_value(request.P, arg_name, arg_spec, signature, request.B)
+
+        # 未找到参数
+        if use_default is None:
+            return HttpResponseBadRequest('Parameter "%s" is required' % arg_name)
+
+        # 使用默认值
+        if use_default is True:
+            actual_args.append(arg_value)
+            continue
+
+        # 未指定类型
+        if 'annotation' not in arg_spec:
+            actual_args.append(arg_value)
+            continue
+
+        # 检查类型是否一致 #
+
+        # 类型一致，直接使用
+        if isinstance(arg_value, arg_spec.annotation):
+            actual_args.append(arg_value)
+            continue
+
+        # 类型不一致，尝试转换类型
+        # 转换失败时，会抛出异常
+        try:
+            # 当 arg_value 是字符串，arg_spec的类型是对象时，尝试解析成 json
+            if arg_spec.annotation in (dict, list) and isinstance(arg_value, str):
+                try:
+                    arg_value = json.loads(arg_value)
+                except:
+                    # 此处的异常直接忽略即可
+                    logger.warning('Value for "%s!%s" may be incorrect: %s' % (func.__name__, arg_name, arg_value))
+
+                # 类型一致，直接使用
+                if isinstance(arg_value, arg_spec.annotation):
+                    actual_args.append(arg_value)
+                    continue
+
+            actual_args.append(arg_spec.annotation(arg_value))
+        except:
+            msg = 'Parameter type of "%s" mismatch, signature: %s' % (arg_name, _get_signature(signature))
+            logger.warning(msg)
+            return HttpResponseBadRequest(msg)
+
+    return actual_args
 
 
 def _wrap_http_response(mgr, data):

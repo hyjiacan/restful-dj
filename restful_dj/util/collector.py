@@ -9,6 +9,13 @@ from os import path
 from django.conf import settings
 
 
+def _get_env(*args):
+    env = {}
+    for arg in args:
+        env[arg.__name__] = arg
+    return env
+
+
 def _get_route_map():
     from ..setting import APP_CONFIG_ROUTE, CONFIG_ROOT
     if APP_CONFIG_ROUTE not in CONFIG_ROOT:
@@ -22,11 +29,13 @@ def _get_route_map():
     return routes.items()
 
 
-def collect():
+def collect(*environments):
     """
     执行收集操作
     :return: 所有路由的集合
     """
+    # 为 route 提供的执行环境
+    route_env = _get_env(fake_route, *environments)
     project_root = settings.BASE_DIR
 
     # 所有路由的集合
@@ -40,7 +49,7 @@ def collect():
             # 可能是包
             pkg_file = path.abspath(path.join(dir_name, '__init__.py'))
             if path.exists(pkg_file) and path.isfile(pkg_file):
-                get_route_defines(route_root, pkg_file, http_prefix, pkg_prefix, routes)
+                get_route_defines(route_root, pkg_file, http_prefix, pkg_prefix, routes, route_env)
 
             for file in files:
                 # 不是 .py 文件，忽略
@@ -49,27 +58,28 @@ def collect():
 
                 fullname = path.abspath(path.join(dir_name, file))
                 # 解析文件
-                get_route_defines(route_root, fullname, http_prefix, pkg_prefix, routes)
+                get_route_defines(route_root, fullname, http_prefix, pkg_prefix, routes, route_env)
 
             for sub_dir_name in dirs:
                 pkg_file = path.abspath(path.join(sub_dir_name, '__init__.py'))
                 if path.exists(pkg_file) and path.isfile(pkg_file):
-                    get_route_defines(route_root, pkg_file, http_prefix, pkg_prefix, routes)
+                    get_route_defines(route_root, pkg_file, http_prefix, pkg_prefix, routes, route_env)
 
     return routes
 
 
-def get_route_defines(route_root, fullname, http_prefix, pkg_prefix, routes):
-    for define in resolve_file(route_root, fullname, http_prefix, pkg_prefix):
+def get_route_defines(route_root, fullname, http_prefix, pkg_prefix, routes, route_env):
+    for define in resolve_file(route_root, fullname, http_prefix, pkg_prefix, route_env):
         # 返回 None 表示没有找到定义
         if define is None:
             continue
         routes.append(define)
 
 
-def resolve_file(route_define, fullname, http_prefix, pkg_prefix):
+def resolve_file(route_define, fullname, http_prefix, pkg_prefix, route_env: dict):
     """
     解析文件
+    :param route_env:
     :param pkg_prefix:
     :param http_prefix: http 请求前缀
     :param route_define: 路由文件的根路径
@@ -96,7 +106,7 @@ def resolve_file(route_define, fullname, http_prefix, pkg_prefix):
         method, name = resolve_func(func)
         # 利用 eval 解析出路由的定义（在这个文件中定义了与装饰器相同的函数，以便于读取装饰器的参数）
         router_str = router_str.replace('route', 'fake_route')
-        define = eval(router_str, globals())
+        define = eval(router_str, route_env)
         # 构造http请求的地址
         # -3 是为了干掉最后的 .py 字样
         pkg = re.sub(r'[/\\]', '.', path.relpath(fullname, route_define))[0:-3]
