@@ -4,7 +4,7 @@ from collections import OrderedDict
 from .dot_dict import DotDict
 
 
-def get_args(func):
+def get_func_args(func):
     """
     获取函数的参数列表（带参数类型）
     :param func:
@@ -32,3 +32,12 @@ def get_args(func):
         args[p] = spec
 
     return args
+
+
+def load_module(module_name: str):
+    """
+    加载模块
+    :param module_name:
+    :return:
+    """
+    return __import__(module_name, fromlist=True)

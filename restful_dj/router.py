@@ -3,12 +3,13 @@ import os
 
 from django.conf import settings
 from django.http import HttpResponseNotFound, HttpResponseServerError, HttpRequest, HttpResponse
-from .util import collector, func_util
+from .util import collector, utils
 
 from .util import logger
 
 # 包名称
 from .util.dot_dict import DotDict
+from .util.utils import load_module
 
 NAME = 'restful_dj'
 
@@ -20,10 +21,11 @@ _BEFORE_DISPATCH_HANDLER = None
 # 线上模式时，使用固定路由
 PRODUCTION_ROUTES = {}
 
-if not settings.DEBUG:
+
+def _load_production_routes():
     for _route in collector.collect():
-        func = getattr(__import__(_route['pkg'], fromlist=True), _route['handler'])
-        args = func_util.get_args(func)
+        func = getattr(load_module(_route['pkg']), _route['handler'])
+        args = utils.get_func_args(func)
         rid = '%s#%s' % (_route['path'], _route['method'])
         PRODUCTION_ROUTES[rid] = DotDict.parse({
             'func': func,
@@ -53,6 +55,8 @@ def dispatch(request, entry, name=''):
         entry, name = _BEFORE_DISPATCH_HANDLER(request, entry, name)
 
     if not settings.DEBUG:
+        if len(PRODUCTION_ROUTES) == 0:
+            _load_production_routes()
         return _route_for_production(request, entry, name)
 
     router = Router(request, entry, name)
@@ -161,7 +165,7 @@ class Router:
             # 如果不加上fromlist=True,只会导入目录
             # noinspection PyTypeChecker
             # __import__ 自带缓存
-            entry_define = __import__(module_name, fromlist=True)
+            entry_define = load_module(module_name)
         except Exception as e:
             message = 'Load module "%s" failed' % module_name
             logger.error(message, e)
@@ -190,7 +194,7 @@ class Router:
             #     'annotation': '类型', 当未指定类型时，无此项
             #     'default': '默认值'，当未指定默认值时，无此项
             # }
-            'args': func_util.get_args(func)
+            'args': utils.get_func_args(func)
         })
 
         return ENTRY_CACHE[fullname]
@@ -209,7 +213,7 @@ class Router:
         return False
 
     def get_route_map(self, route_path):
-        from .setting import CONFIG_ROUTE, CONFIG_ROOT, APP_CONFIG_ROUTE
+        from restful_dj.util.setting import CONFIG_ROUTE, CONFIG_ROOT, APP_CONFIG_ROUTE
         # 命中
         hit_route = None
         for root_path in CONFIG_ROUTE:

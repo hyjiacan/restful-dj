@@ -41,6 +41,7 @@ urlpatterns = [
 
 ```python
 RESTFUL_DJ = {
+    'global_class': ['path.to.CustomClass',],
     'routes': {
         'path.prefix': 'path.to',
     },
@@ -51,9 +52,26 @@ RESTFUL_DJ = {
 }
 ```
 
+- **global_class** 当在路由装饰器参数中使用了自定义的值类型时（比如枚举或类），应该当将其添加到此处，否则无法正确收集到路由
 - **routes** 路由映射配置，即将指定的请求路径映射到指定的代码路径（路径应为基于项目根目录的相对路径）
 - **middleware** 中间件配置，其值为一个 `list`，第一个填写一个中间件的完整限定名称
 - **logger** 默认的日志是直接打印到控制台的，可以通过设置此值以实现重定向日志输出
+
+*test.py*
+```python
+from restful_dj import route
+from enums import RouteTypes
+@route('module_name', 'route_name', route_type = RouteTypes.TEST)
+def test(req):
+    pass
+```
+
+*enums.py*
+```python
+from enum import Enum
+class RouteTypes(Enum):
+    TEST = 1
+```
 
 ### 编写路由
 

@@ -1,6 +1,6 @@
 # coding: utf-8
 
-# 此模块用于收集路由，并自动生成配置文件
+# 此模块用于收集路由
 
 import os
 import re
@@ -10,14 +10,22 @@ from django.conf import settings
 
 
 def _get_env(*args):
+    from .setting import GLOBAL_CLASSES
     env = {}
+
+    # 加载全局配置
+    for arg in GLOBAL_CLASSES:
+        env[arg.__name__] = arg
+
+    # 加载接口参数
+    # 若存在相同的名称，则会被覆盖
     for arg in args:
         env[arg.__name__] = arg
     return env
 
 
 def _get_route_map():
-    from ..setting import APP_CONFIG_ROUTE, CONFIG_ROOT
+    from restful_dj.util.setting import APP_CONFIG_ROUTE, CONFIG_ROOT
     if APP_CONFIG_ROUTE not in CONFIG_ROOT:
         raise Exception('restful-dj: route map setting not found')
 
@@ -35,6 +43,7 @@ def collect(*environments):
     :return: 所有路由的集合
     """
     # 为 route 提供的执行环境
+    # 读取在 settings.py 中配置的环境
     route_env = _get_env(fake_route, *environments)
     project_root = settings.BASE_DIR
 
@@ -120,7 +129,6 @@ def resolve_file(route_define, fullname, http_prefix, pkg_prefix, route_env: dic
         if name is not None:
             http_path += '/' + name
 
-        # TODO 包路径
         pkg = '%s.%s' % (pkg_prefix, pkg)
         # 唯一标识
         define['id'] = '%s_%s' % (pkg.replace('_', '__').replace('.', '_'), func)

@@ -7,6 +7,8 @@ from .meta import RouteMeta
 from .util import logger
 
 # 注册的路由中间件列表
+from .util.utils import load_module
+
 MIDDLEWARE_INSTANCE_LIST = []
 
 
@@ -35,7 +37,7 @@ def add_middleware(middleware_name):
             logger.error('Middleware for restful-dj is not found: %s' % middleware_name)
             return
 
-    module = __import__(module_name, fromlist=True)
+    module = load_module(module_name)
 
     middleware = getattr(module, class_name)
 

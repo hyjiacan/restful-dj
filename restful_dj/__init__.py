@@ -1,6 +1,7 @@
 from django.urls import path
 
 from . import router
+from .decorator import route
 
 from .meta import RouteMeta
 
@@ -22,7 +23,7 @@ urls = (
 __all__ = [
     'collector',
     'DotDict',
-    'router',
+    'route',
     'RouteMeta',
     'set_before_dispatch_handler',
     'urls'
