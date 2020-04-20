@@ -210,6 +210,8 @@ def _get_actual_args(request: HttpRequest, func, args):
             if arg_spec.annotation in (dict, list) and isinstance(arg_value, str):
                 try:
                     arg_value = json.loads(arg_value)
+                    if isinstance(arg_value, (list, dict)):
+                        arg_value = DotDict.parse(arg_value)
                 except:
                     # 此处的异常直接忽略即可
                     logger.warning('Value for "%s!%s" may be incorrect: %s' % (func.__name__, arg_name, arg_value))

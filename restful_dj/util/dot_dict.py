@@ -23,6 +23,10 @@ class DotDict(dict):
         :param handle_key: 是否处理特殊 key
         :return:
         """
+
+        if not isinstance(obj, (dict, list)):
+            return obj
+
         dot_dict = DotDict()
 
         # 处理 dict
