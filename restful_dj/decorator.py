@@ -178,10 +178,9 @@ def _get_actual_args(request: HttpRequest, func, args):
 
         arg_spec = args.get(arg_name)
 
-        if method in ['delete', 'get']:
-            use_default, arg_value = _get_value(request.G, arg_name, arg_spec, signature)
-        else:
-            use_default, arg_value = _get_value(request.P, arg_name, arg_spec, signature, request.B)
+        arg_source = request.G if method in ['delete', 'get'] else request.P
+
+        use_default, arg_value = _get_value(arg_source, arg_name, arg_spec, signature, request.B)
 
         # 未找到参数
         if use_default is None:
