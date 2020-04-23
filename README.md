@@ -80,10 +80,12 @@ class RouteTypes(Enum):
 *test/api/demo.py*
 
 ```python
+from django.http import HttpRequest
 from restful_dj.decorator import route
 
 @route(module='module-name', name='name')
 def get(request, param1, param2=None, param3: int =5):
+    # request 会是 HttpRequest
     return {
         'param1': param1, 
         'param2': param2, 
@@ -91,16 +93,48 @@ def get(request, param1, param2=None, param3: int =5):
     }
 
 @route(module='module-name', name='name')
-def get_param(request, param1, from_=None, param3 =5):
+def get_param(param1, req: HttpRequest, from_=None, param3 =5):
+    # req 会是 HttpRequest
     return {
         'param1': param1, 
         'from': from_, 
-        'param3': param3, 
+        'param3': param3,
+    } 
+
+@route(module='module-name', name='name')
+def get_param(request: str, param1, from_=None, param3 =5):
+    # request 会是请求参数，参数列表中没有 HttpRequest
+    return {
+        'request': request,
+        'param1': param1, 
+        'from': from_, 
+        'param3': param3,
+    } 
+
+@route(module='module-name', name='name')
+def get_param(request, param1, from_=None, param3 =5, **kwargs):
+    # 未在函数的参数列表中声明的请求参数，会出现在 kwargs 中
+    return {
+        'param1': param1,
+        'from': from_,
+        'param3': param3,
+        'variable_args': kwargs
     }
+
 ```
 
-> 当代码中需要使用关键字作为名称时，请在名称后添加 `_`，此时前端请求时，`_` 符号可省略，如:
-> `from_` 在请求时可写作 `from=test` （`from_=test` 亦可）。
+一些需要注意的地方：
+
+- 当代码中需要使用关键字作为名称时，请在名称后添加 `_`，此时前端请求时，`_` 符号可省略，
+如: `from_` 在请求时可写作 `from=test` （`from_=test` 亦可）。
+- 路由处理函数可以添加一个可变参数(如：`**kwargs**`)，用于接收未在参数列表中列出的请求项。
+当然，`kwargs`和普通函数一样，可以是任何其它名称。
+- `request` 参数(与参数位置无关)，可能被解析成三种结果(`1`和`2`均会将其作为 `HttpRequest` 参数处理)：
+    1. 参数名称为 `request`，并且未指定参数类型(或指定类型为 `HttpRequest`)
+    2. 参数类型为 `HttpRequest`，参数名称可以是任何合法的标识符
+    3. 参数名称为 `request`，声明了不是 `HttpRequest` 的类型，此时会被解析成一般的请求参数
+    
+    
 
 再写配置
 
@@ -124,13 +158,12 @@ ajax.get('test.demo?param1=1&param2=2&param3=3')
 ajax.get('test.demo/param?param1=1&param2=2&param3=3')
 ```
 
-路由可以返回任何类型的数据。
+路由可以返回任何类型的数据。路由会自动根据函数定义来判断传入参数的类型是否合法。
 
-> 路由会自动根据函数定义来判断传入参数的类型是否合法。
-> 比如前面示例中的 `param3: int =5`，会根据声明类型 `int` 去判断传入类型，
-> 如果传入了字符串类型的数值，路由会自动转换成数值类型。
-> 另外，如果设置了 `None` 以外的默认值，那么路由会根据默认值的类型自动去判断，
-> 此时可以省略参数类型，如: `param3: int =5` 省略为 `param3=5`
+比如前面示例中的 `param3: int =5`，会根据声明类型 `int` 去判断传入类型
+- 如果传入了字符串类型的数值，路由会自动转换成数值类型
+- 另外，如果设置了 `None` 以外的默认值，那么路由会根据默认值的类型自动去判断，
+此时可以省略参数类型，如: `param3: int =5` 省略为 `param3=5`
 
 ### 装饰器 `route`
 
@@ -150,9 +183,9 @@ def route(module=None, name=None, permission=True, ajax=True, referer=None, **kw
 - `referer` 设置此路由允许的 **referer** 地址 *保留参数*
 - `**kwargs` *额外参数*
 
-> 这些参数都会被传递给中间件的 `check_login_status` 以及 `check_user_permission` 函数(参数 `meta`)。详细见 [RouteMeta](#RouteMeta)
+> 这些参数都会被传递给中间件的各个函数的参数 `meta`。详细见 [RouteMeta](#RouteMeta)
 
-同时，此装饰器会自动尝试将 `request.body` 处理成 JSON 格式，并且添加到 `request.B` 属性上。
+同时，此装饰器会自动尝试将 `request.body` 处理成 JSON 格式(仅在 `content-type=application/json` 时)，并且添加到 `request.B` 属性上。
 
 另外，此装饰器会自动将 `request.GET` 和 `request.POST` 处理成为可以通过点号直接访问的对象，分别添加到 `request.G` 和 `request.P` 上。例：
 
@@ -169,6 +202,9 @@ request.GET['param1']
 # 而在经过装饰器的处理后，可以这样访问
 request.G.param1
 ```
+
+但是，一般情况下，使用路由处理函数就能完全操作请求参数的，
+所以需要在代码中尽量减少使用 `B/P/G`，以避免代码的不明确性。
 
 ### 分发前的处理 (可选)
 
@@ -349,7 +385,7 @@ routes = collector.collect()
 
 ## 待办事项
 
-> 暂无
+- 路由处理函数支持 `**kwargs**` 参数的自动填充
 
 ## 常见问题
 

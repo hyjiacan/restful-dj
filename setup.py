@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf8") as fh:
 
 setuptools.setup(
     name='restful-dj',
-    version='0.4.3',
+    version='0.5.0',
     packages=setuptools.find_packages(),
     url='http://github.com/hyjiacan/restful-dj',
     license='MIT',

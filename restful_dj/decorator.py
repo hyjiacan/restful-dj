@@ -1,4 +1,5 @@
 import json
+from collections import OrderedDict
 from functools import wraps
 
 from django.http import HttpResponse, JsonResponse, HttpResponseBadRequest, HttpRequest
@@ -8,6 +9,7 @@ from .middleware import MiddlewareManager
 from .util.dot_dict import DotDict
 
 from .util import logger
+from .util.utils import ArgumentSpecification
 
 
 def route(module=None, name=None, permission=True, ajax=True, referer=None, **kwargs):
@@ -69,10 +71,7 @@ def route(module=None, name=None, permission=True, ajax=True, referer=None, **kw
             if arg_len == 0:
                 return mgr.end(_wrap_http_response(mgr, func()))
 
-            if arg_len == 1:
-                return mgr.end(_wrap_http_response(mgr, func(request)))
-
-            # 多个参数，自动从 queryString, POST 或 json 中获取
+            # 有参数，自动从 queryString, POST 或 json 中获取
             # 匹配参数
 
             actual_args = _get_actual_args(request, func, args)
@@ -80,7 +79,7 @@ def route(module=None, name=None, permission=True, ajax=True, referer=None, **kw
             if isinstance(actual_args, HttpResponse):
                 return mgr.end(actual_args)
 
-            result = func(*actual_args)
+            result = func(**actual_args)
 
             return mgr.end(_wrap_http_response(mgr, result))
 
@@ -119,16 +118,11 @@ def _process_json_params(request):
         logger.warning('Deserialize request body fail: %s' % str(e))
 
 
-def _get_signature(signature):
-    # 第一个总是  request,去掉
-    return '(%s)' % ','.join(str(signature).strip('(').strip(')').split(',')[1:]).strip()
-
-
 def _parameter_is_missing(signature, arg_name):
-    logger.error('Missing required parameter "%s", signature: %s' % (arg_name, _get_signature(signature)))
+    logger.error('Missing required parameter "%s", signature: %s' % (arg_name, str(signature)))
 
 
-def _get_value(data: dict, name: str, arg_spec: DotDict, signature, backup: dict = None):
+def _get_value(data: dict, name: str, arg_spec: ArgumentSpecification, signature, backup: dict = None):
     """
 
     :param data:
@@ -153,8 +147,8 @@ def _get_value(data: dict, name: str, arg_spec: DotDict, signature, backup: dict
         if inner_name in backup:
             return False, backup[inner_name]
 
-    # 尝试使用默认值
-    if 'default' in arg_spec:
+    # 使用默认值
+    if arg_spec.has_default:
         return True, arg_spec.default
 
     # 缺少无默认值的参数
@@ -162,23 +156,39 @@ def _get_value(data: dict, name: str, arg_spec: DotDict, signature, backup: dict
     return None, None
 
 
-def _get_actual_args(request: HttpRequest, func, args):
+def _get_actual_args(request: HttpRequest, func, args: OrderedDict) -> dict:
     method = request.method.lower()
-    actual_args = [request]
+    actual_args = {}
 
     import inspect
     signature = inspect.signature(func)
 
-    # 规定：第一个参数只能是  request，所以此处直接跳过第一个参数
-    position = 0
-    for arg_name in args.keys():
-        position += 1
-        if position == 1:
-            continue
+    # 已使用的参数名称，用于后期填充可变参数时作排除用
+    used_args = []
+    # 是否声明了可变参数
+    has_variable_args = False
 
+    arg_source = request.G if method in ['delete', 'get'] else request.P
+
+    for arg_name in args.keys():
         arg_spec = args.get(arg_name)
 
-        arg_source = request.G if method in ['delete', 'get'] else request.P
+        # 如果是可变参数：如: **kwargs
+        # 设置标记，以在后面进行填充
+        if arg_spec.is_variable:
+            has_variable_args = True
+            continue
+
+        # 以及情况将传入 HttpRequest 对象
+        # 1. 当参数名称是 request 并且未指定类型
+        # 2. 当参数类型是 HttpRequest 时 (不论参数名称，包括 request)
+        # 但是，参数名称是 request 但其类型不是 HttpRequest ，就会被当作一般参数处理
+        if arg_name == 'request' and not arg_spec.has_annotation:
+            actual_args[arg_name] = request
+            continue
+        if arg_spec.annotation == HttpRequest:
+            actual_args[arg_name] = request
+            continue
 
         use_default, arg_value = _get_value(arg_source, arg_name, arg_spec, signature, request.B)
 
@@ -188,19 +198,22 @@ def _get_actual_args(request: HttpRequest, func, args):
 
         # 使用默认值
         if use_default is True:
-            actual_args.append(arg_value)
+            actual_args[arg_name] = arg_value
+            used_args.append(arg_name)
             continue
 
         # 未指定类型
-        if 'annotation' not in arg_spec:
-            actual_args.append(arg_value)
+        if not arg_spec.has_annotation:
+            actual_args[arg_name] = arg_value
+            used_args.append(arg_name)
             continue
 
         # 检查类型是否一致 #
 
         # 类型一致，直接使用
         if isinstance(arg_value, arg_spec.annotation):
-            actual_args.append(arg_value)
+            actual_args[arg_name] = arg_value
+            used_args.append(arg_name)
             continue
 
         # 类型不一致，尝试转换类型
@@ -218,14 +231,32 @@ def _get_actual_args(request: HttpRequest, func, args):
 
                 # 类型一致，直接使用
                 if isinstance(arg_value, arg_spec.annotation):
-                    actual_args.append(arg_value)
+                    actual_args[arg_name] = arg_value
+                    used_args.append(arg_name)
                     continue
-
-            actual_args.append(arg_spec.annotation(arg_value))
+            actual_args[arg_name] = arg_spec.annotation(arg_value)
+            used_args.append(arg_name)
         except:
-            msg = 'Parameter type of "%s" mismatch, signature: %s' % (arg_name, _get_signature(signature))
+            msg = 'Parameter type of "%s" mismatch, signature: %s' % (arg_name, str(signature))
             logger.warning(msg)
             return HttpResponseBadRequest(msg)
+
+    if not has_variable_args:
+        return actual_args
+
+    # 填充可变参数
+    variable_args = {}
+    for item in arg_source:
+        if item in used_args:
+            continue
+        variable_args[item] = arg_source[item]
+
+    for item in request.B:
+        if item in used_args:
+            continue
+        variable_args[item] = request.B[item]
+
+    actual_args.update(variable_args)
 
     return actual_args
 

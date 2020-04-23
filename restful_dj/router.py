@@ -8,7 +8,6 @@ from .util import collector, utils
 from .util import logger
 
 # 包名称
-from .util.dot_dict import DotDict
 from .util.utils import load_module
 
 NAME = 'restful_dj'
@@ -27,10 +26,10 @@ def _load_production_routes():
         func = getattr(load_module(_route['pkg']), _route['handler'])
         args = utils.get_func_args(func)
         rid = '%s#%s' % (_route['path'], _route['method'])
-        PRODUCTION_ROUTES[rid] = DotDict.parse({
+        PRODUCTION_ROUTES[rid] = {
             'func': func,
             'args': args
-        })
+        }
 
 
 def set_before_dispatch_handler(handler):
@@ -76,14 +75,14 @@ def _route_for_production(request, entry, name):
     except Exception:
         return HttpResponseNotFound()
 
-    return _invoke_handler(request, route.func, route.args)
+    return _invoke_handler(request, route['func'], route['args'])
 
 
 def _invoke_handler(request, func, args):
     try:
         return func(request, args)
     except Exception as e:
-        message = 'Router invoke error'
+        message = '[restful-dj]'
         logger.error(message, e)
         return HttpResponseServerError('%s: %s' % (message, str(e)))
 
@@ -147,7 +146,7 @@ class Router:
         if func_define is HttpResponse:
             return func_define
 
-        return _invoke_handler(self.request, func_define.func, func_define.args)
+        return _invoke_handler(self.request, func_define['func'], func_define['args'])
 
     def get_func_define(self):
         fullname = self.fullname
@@ -187,7 +186,7 @@ class Router:
             ENTRY_CACHE[func_name] = False
             return False
 
-        ENTRY_CACHE[fullname] = DotDict.parse({
+        ENTRY_CACHE[fullname] = {
             'func': func,
             # 该函数的参数列表
             # 'name': {
@@ -195,7 +194,7 @@ class Router:
             #     'default': '默认值'，当未指定默认值时，无此项
             # }
             'args': utils.get_func_args(func)
-        })
+        }
 
         return ENTRY_CACHE[fullname]
 
