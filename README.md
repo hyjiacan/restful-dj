@@ -1,16 +1,18 @@
 # restful-dj
 
+**重要提示：此库当前处于预开发阶段，接口与用法可能发生变化，请勿用于生产环境** 
+
 基于 Django2/3 的 restful 自动路由支持。
 
 此包解决的问题：
 
 - 解决 Django 繁锁的路由配置
 - 提供更便捷的 restful 编码体验
-- 自动解析请求参数，填充到路由目标函数中
+- 自动解析请求参数，填充到路由处理函数
 
 ## 安装
 
-此包已发布到 PyPI: https://pypi.org/project/restful-dj/ 
+PyPI: https://pypi.org/project/restful-dj/ 
 
 ```shell script
 pip install restful-dj
@@ -273,7 +275,7 @@ class RouteMeta:
 
 注册到 *settings.py* 的 `RESTFUL_DJ.middleware` 列表中。中间件将按顺序执行。
 
-**需要注意**： 所有的中间件在程序运行期间共享一个实例。
+**需要注意**： 每一个中间件在程序运行期间共享一个实例。
 
 **path.to.MiddlewareClass**
 
@@ -284,68 +286,35 @@ class MiddlewareClass:
     """
     路由中间件
     """
-
-    def request_process(self, request, meta: RouteMeta, **kwargs):
+    def process_request(self, request, meta: RouteMeta, **kwargs):
         """
         对 request 对象进行预处理。一般用于请求的数据的解码
         :param request:
         :param meta:
         :param kwargs:
-        :return: 返回 HttpResponse 以终止请求
+        :return: 返回 HttpResponse 以终止请求，返回 False 以停止执行后续的中间件(表示访问未授权)，返回 None 或不返回任何值继续执行后续中间件
         """
         pass
 
-    def response_process(self, request, meta: RouteMeta, **kwargs):
+    def process_response(self, request, meta: RouteMeta, **kwargs):
         """
         对 response 数据进行预处理。一般用于响应的数据的编码
         :rtype: HttpResponse
         :param meta:
         :param request:
         :param kwargs: 始终会有一个 'response' 的项，表示返回的 HttpResponse
-        :return: 应该始终返回一个  HttpResponse
+        :return: 无论何种情况，应该始终返回一个  HttpResponse
         """
         assert 'response' in kwargs
         return kwargs['response']
 
-    def check_login_status(self, request, meta: RouteMeta, **kwargs):
-        """
-        检查用户的登录状态，使用时请覆写此方法
-        :rtype: bool | HttpResponse
-        :param request:
-        :param meta:
-        :param kwargs:
-        :return: True|False|HttpResponse 已经登录时返回 True，否则返回 False，HttpResponse 响应
-        """
-        return True
-
-    def check_user_permission(self, request, meta: RouteMeta, **kwargs):
-        """
-        检查用户是否有权限访问此路由，使用时请覆写此方法
-        :rtype: bool | HttpResponse
-        :param request:
-        :param meta:
-        :param kwargs:
-        :return: True|False|HttpResponse 已经登录时返回 True，否则返回 False，HttpResponse 响应
-        """
-        return True
-
-    def check_params(self, request, meta: RouteMeta, **kwargs):
-        """
-        在调用路由函数前，对参数进行处理，使用时请覆写此方法
-        :param request:
-        :param meta:
-        :param kwargs:
-        :return: 返回 HttpResponse 以终止请求
-        """
-        pass
-
-    def process_return_value(self, request, meta: RouteMeta, **kwargs):
+    def process_return(self, request, meta: RouteMeta, **kwargs):
         """
         在路由函数调用后，对其返回值进行处理
         :param request:
         :param meta:
         :param kwargs: 始终会有一个 'data' 的项，表示返回的原始数据
-        :return: 返回 HttpResponse 以终止执行
+        :return: 返回 HttpResponse 以终止执行，否则返回新的 return value
         """
         assert 'data' in kwargs
         return kwargs['data']

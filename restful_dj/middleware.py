@@ -5,7 +5,6 @@ from django.http import HttpResponse, HttpRequest
 
 from .meta import RouteMeta
 from .util import logger
-
 # 注册的路由中间件列表
 from .util.utils import load_module
 
@@ -39,10 +38,10 @@ def add_middleware(middleware_name):
 
     module = load_module(module_name)
 
-    middleware = getattr(module, class_name)
+    middleware_cls = getattr(module, class_name)
 
-    if middleware not in MIDDLEWARE_INSTANCE_LIST:
-        MIDDLEWARE_INSTANCE_LIST.append(middleware())
+    if middleware_cls not in MIDDLEWARE_INSTANCE_LIST:
+        MIDDLEWARE_INSTANCE_LIST.append(middleware_cls())
 
     return True
 
@@ -52,73 +51,37 @@ class MiddlewareBase:
     路由中间件基类
     """
 
-    def __init__(self):
-        self.session = {}
-
-    def request_process(self, request, meta: RouteMeta, **kwargs):
+    def process_request(self, request: HttpRequest, meta: RouteMeta, **kwargs):
         """
         对 request 对象进行预处理。一般用于请求的数据的解码
         :param request:
         :param meta:
-        :param kwargs:
-        :return: 返回 HttpResponse 以终止请求
+        :return: 返回 HttpResponse 以终止请求，返回 False 以停止执行后续的中间件(表示访问未授权)，返回 None 或不返回任何值继续执行后续中间件
         """
         pass
 
-    def response_process(self, request, meta: RouteMeta, **kwargs):
-        """
-        对 response 数据进行预处理。一般用于响应的数据的编码
-        :rtype: HttpResponse
-        :param meta:
-        :param request:
-        :param kwargs: 始终会有一个 'response' 的项，表示返回的 HttpResponse
-        :return: 应该始终返回一个  HttpResponse
-        """
-        assert 'response' in kwargs
-        return kwargs['response']
-
-    def check_login_status(self, request, meta: RouteMeta, **kwargs):
-        """
-        检查用户的登录状态，使用时请覆写此方法
-        :rtype: bool | HttpResponse
-        :param request:
-        :param meta:
-        :param kwargs:
-        :return: True|False|HttpResponse 已经登录时返回 True，否则返回 False，HttpResponse 响应
-        """
-        return True
-
-    def check_user_permission(self, request, meta: RouteMeta, **kwargs):
-        """
-        检查用户是否有权限访问此路由，使用时请覆写此方法
-        :rtype: bool | HttpResponse
-        :param request:
-        :param meta:
-        :param kwargs:
-        :return: True|False|HttpResponse 已经登录时返回 True，否则返回 False，HttpResponse 响应
-        """
-        return True
-
-    def check_params(self, request, meta: RouteMeta, **kwargs):
-        """
-        在调用路由函数前，对参数进行处理，使用时请覆写此方法
-        :param request:
-        :param meta:
-        :param kwargs:
-        :return: 返回 HttpResponse 以终止请求
-        """
-        pass
-
-    def process_return_value(self, request, meta: RouteMeta, **kwargs):
+    def process_return(self, request: HttpRequest, meta: RouteMeta, **kwargs):
         """
         在路由函数调用后，对其返回值进行处理
         :param request:
         :param meta:
-        :param kwargs: 始终会有一个 'data' 的项，表示返回的原始数据
-        :return: 返回 HttpResponse 以终止执行
+        :param kwargs: 始终会有一个 'data' 的项，表示路由返回的原始数据
+        :return: 返回 HttpResponse 以终止执行，否则返回新的 数据
         """
         assert 'data' in kwargs
         return kwargs['data']
+
+    def process_response(self, request: HttpRequest, meta: RouteMeta, **kwargs) -> HttpResponse:
+        """
+        对 response 数据进行预处理。一般用于响应的数据的编码
+        :param request:
+        :param meta:
+        :param kwargs: 始终会有一个 'response' 的项，表示路由返回的原始 HttpResponse
+        :return: 无论何种情况，应该始终返回一个  HttpResponse
+        :rtype: HttpResponse
+        """
+        assert 'response' in kwargs
+        return kwargs['response']
 
 
 class MiddlewareManager:
@@ -132,73 +95,11 @@ class MiddlewareManager:
         # 元数据信息
         self.meta = meta
 
-    def invoke(self):
-        # 对 request 进行预处理
+    def begin(self):
         for middleware in MIDDLEWARE_INSTANCE_LIST:
-            if not hasattr(middleware, 'request_process'):
+            if not hasattr(middleware, 'process_request'):
                 continue
-            result = middleware.request_process(self.request, self.meta)
-            if isinstance(result, HttpResponse):
-                return result
-
-        # 不需要登录，也不需要检查用户权限
-        if not self.meta.permission:
-            return True
-
-        # 需要检查登录状态
-        for middleware in MIDDLEWARE_INSTANCE_LIST:
-            if not hasattr(middleware, 'check_login_status'):
-                continue
-
-            result = middleware.check_login_status(self.request, self.meta)
-
-            # 没有返回结果
-            if result is None:
-                continue
-
-            # 如果路由中间件有返回结果
-            if isinstance(result, HttpResponse):
-                return result
-
-            # 只要不返回 true 都表示不能继续了
-            if result is False:
-                return result
-
-        # 需要检查用户权限
-        for middleware in MIDDLEWARE_INSTANCE_LIST:
-            if self.meta.permission and hasattr(middleware, 'check_user_permission'):
-                result = middleware.check_user_permission(self.request, self.meta)
-
-                # 没有返回结果
-                if result is None:
-                    continue
-
-                # 如果路由中间件有返回结果
-                if isinstance(result, HttpResponse):
-                    return result
-
-                # 只要不返回 true 都表示不能继续了
-                if result is not True:
-                    return result
-        return True
-
-    def params(self):
-        """
-        在调用路由函数前，对参数进行处理
-        :param request:
-        :return:
-        """
-        # 对 response 进行处理
-        for middleware in MIDDLEWARE_INSTANCE_LIST:
-            if not hasattr(middleware, 'check_params'):
-                continue
-            result = middleware.check_params(self.request, self.meta)
-
-            # 没有返回结果
-            if result is None:
-                continue
-
-            # 如果路由中间件有返回结果
+            result = middleware.process_request(self.request, self.meta)
             if isinstance(result, HttpResponse):
                 return result
 
@@ -209,9 +110,9 @@ class MiddlewareManager:
         :return:
         """
         for middleware in MIDDLEWARE_INSTANCE_LIST:
-            if not hasattr(middleware, 'process_return_value'):
+            if not hasattr(middleware, 'process_return'):
                 continue
-            result = middleware.process_return_value(self.request, self.meta, data=data)
+            result = middleware.process_return(self.request, self.meta, data=data)
 
             # 返回 HttpResponse 终止
             if result is HttpResponse:
@@ -230,8 +131,8 @@ class MiddlewareManager:
         """
         # 对 response 进行处理
         for middleware in MIDDLEWARE_INSTANCE_LIST:
-            if not hasattr(middleware, 'response_process'):
+            if not hasattr(middleware, 'process_response'):
                 continue
-            response = middleware.response_process(self.request, self.meta, response=response)
+            response = middleware.process_response(self.request, self.meta, response=response)
 
         return response

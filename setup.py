@@ -1,11 +1,13 @@
 import setuptools
 
+VERSION = '0.6.1'
+
 with open("README.md", "r", encoding="utf8") as fh:
     long_description = fh.read()
 
 setuptools.setup(
     name='restful-dj',
-    version='0.5.0',
+    version=VERSION,
     packages=setuptools.find_packages(),
     url='http://github.com/hyjiacan/restful-dj',
     license='MIT',

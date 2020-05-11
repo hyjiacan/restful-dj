@@ -1,23 +1,19 @@
 from django.urls import path
 
-from . import router
+from .router import dispatch, NAME, set_before_dispatch_handler
 from .decorator import route
-
 from .meta import RouteMeta
-
-from .router import set_before_dispatch_handler
-
 from .util import collector
-
 from .util.dot_dict import DotDict
+from .util.logger import set_logger
 
 urls = (
     [
-        path('<str:entry>', router.dispatch),
-        path('<str:entry>/<str:name>', router.dispatch)
+        path('<str:entry>', dispatch),
+        path('<str:entry>/<str:name>', dispatch)
     ],
-    router.NAME,
-    router.NAME
+    NAME,
+    NAME
 )
 
 __all__ = [
@@ -25,6 +21,8 @@ __all__ = [
     'DotDict',
     'route',
     'RouteMeta',
+    'RouteMeta',
     'set_before_dispatch_handler',
+    'set_logger',
     'urls'
 ]
