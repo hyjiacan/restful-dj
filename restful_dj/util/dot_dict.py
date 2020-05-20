@@ -15,6 +15,12 @@ class DotDict(dict):
         dict.__init__(self, *args, **kwargs)
         self.__dict__ = self
 
+    def __str__(self):
+        return dict.__str__(self)
+
+    def __repr__(self):
+        return dict.__repr__(self)
+
     @staticmethod
     def parse(obj, handle_key=True):
         """

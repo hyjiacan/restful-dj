@@ -2,7 +2,7 @@
 
 **重要提示：此库当前处于预开发阶段，接口与用法可能发生变化，请勿用于生产环境** 
 
-基于 Django2/3 的 restful 自动路由支持。
+基于 Django2/3 的 restful 自动路由支持组件。
 
 此包解决的问题：
 
@@ -20,7 +20,7 @@ pip install restful-dj
 
 ## 使用
 
-此包提供的包（package）名称为 `restful_dj`，所有用到的模块都在此包下引入。
+此组件提供的包（package）名称为 `restful_dj`，所有用到的模块都在此包下引入。
 
 ### 注册
 
@@ -354,7 +354,7 @@ routes = collector.collect()
 
 ## 待办事项
 
-- 路由处理函数支持 `**kwargs**` 参数的自动填充
+无
 
 ## 常见问题
 
@@ -364,4 +364,4 @@ routes = collector.collect()
 
 ## 更新记录
 
-> 预览版本暂不记录
+> 开发阶段暂不记录
