@@ -3,9 +3,17 @@ class RouteMeta:
     路由元数据
     """
 
-    def __init__(self, handler, id=None, module=None, name=None, permission=True, ajax=True, referer=None, kwargs=None):
+    def __init__(self,
+                 handler,
+                 route_id=None,
+                 module=None,
+                 name=None,
+                 permission=True,
+                 ajax=True,
+                 referer=None,
+                 kwargs=None):
         self._handler = handler
-        self._id = id
+        self._id = route_id
         self._module = module
         self._name = name
         self._permission = permission

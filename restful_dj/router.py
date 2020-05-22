@@ -3,13 +3,12 @@ import os
 
 from django.conf import settings
 from django.http import HttpResponseNotFound, HttpResponseServerError, HttpRequest, HttpResponse
+
 from .util import collector, utils
-
 from .util import logger
-
-# 包名称
 from .util.utils import load_module
 
+# 包名称
 NAME = 'restful_dj'
 
 # 函数缓存，减少 inspect 反射调用次数
@@ -51,6 +50,7 @@ def dispatch(request, entry, name=''):
     :return:
     """
     if _BEFORE_DISPATCH_HANDLER is not None:
+        # noinspection PyCallingNonCallable
         entry, name = _BEFORE_DISPATCH_HANDLER(request, entry, name)
 
     if not settings.DEBUG:
@@ -67,6 +67,7 @@ def dispatch(request, entry, name=''):
 
 def _route_for_production(request, entry, name):
     method = request.method.lower()
+    # noinspection PyBroadException
     try:
         if name == '':
             route = PRODUCTION_ROUTES['%s#%s' % (entry, method)]
@@ -198,7 +199,8 @@ class Router:
 
         return ENTRY_CACHE[fullname]
 
-    def is_valid_route(self, func):
+    @staticmethod
+    def is_valid_route(func):
         source = inspect.getsource(func)
         lines = source.split('\n')
         for line in lines:
@@ -211,7 +213,8 @@ class Router:
                 return True
         return False
 
-    def get_route_map(self, route_path):
+    @staticmethod
+    def get_route_map(route_path):
         from restful_dj.util.setting import CONFIG_ROUTE, CONFIG_ROOT, APP_CONFIG_ROUTE
         # 命中
         hit_route = None

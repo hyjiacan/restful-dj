@@ -5,9 +5,9 @@ from django.http import HttpResponse, HttpRequest
 
 from .meta import RouteMeta
 from .util import logger
-# 注册的路由中间件列表
 from .util.utils import load_module
 
+# 注册的路由中间件列表
 MIDDLEWARE_INSTANCE_LIST = []
 
 
@@ -46,6 +46,7 @@ def add_middleware(middleware_name):
     return True
 
 
+# noinspection PyMethodMayBeStatic,PyUnusedLocal
 class MiddlewareBase:
     """
     路由中间件基类

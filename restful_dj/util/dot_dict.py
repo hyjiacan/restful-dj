@@ -40,8 +40,8 @@ class DotDict(dict):
             for (key, value) in obj.items():
                 if handle_key:
                     # 处理特殊的key
-                    zhPattern = re.compile(u'[\u4e00-\u9fa5]+')
-                    match = zhPattern.search(key)
+                    zh_pattern = re.compile(u'[\u4e00-\u9fa5]+')
+                    match = zh_pattern.search(key)
                     if not match:
                         key = re.sub(r'[^0-9a-zA-Z_]', '_', key)
                         # 如果第一个字符不是标识符 就在前面添加一个下划线

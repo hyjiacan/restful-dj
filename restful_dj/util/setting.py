@@ -1,8 +1,7 @@
 from django.conf import settings
 
-from restful_dj.util import logger
-
 from restful_dj.middleware import add_middleware
+from restful_dj.util import logger
 from restful_dj.util.utils import load_module
 
 APP_CONFIG_KEY = 'RESTFUL_DJ'

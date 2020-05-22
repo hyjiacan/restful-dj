@@ -17,6 +17,7 @@ def log(level, message, e=None):
     if CUSTOMIZE_LOGGER is None:
         print('[%s] %s' % (level, message))
     else:
+        # noinspection PyUnresolvedReferences
         CUSTOMIZE_LOGGER.log(level, message, e)
 
 

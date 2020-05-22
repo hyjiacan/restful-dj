@@ -6,9 +6,8 @@ from django.http import HttpResponse, JsonResponse, HttpResponseBadRequest, Http
 
 from .meta import RouteMeta
 from .middleware import MiddlewareManager
-from .util.dot_dict import DotDict
-
 from .util import logger
+from .util.dot_dict import DotDict
 from .util.utils import ArgumentSpecification
 
 
@@ -28,14 +27,14 @@ def route(module=None, name=None, permission=True, ajax=True, referer=None, **kw
 
     def invoke_route(func):
         @wraps(func)
-        def caller(request, args):
+        def caller(request: HttpRequest, args: OrderedDict):
             func_name = func.__name__
 
             mgr = MiddlewareManager(
                 request,
                 RouteMeta(
                     func_name,
-                    id='{0}_{1}'.format(func.__module__.replace('_', '__').replace('.', '_'), func_name),
+                    route_id='%s_%s' % (func.__module__.replace('_', '__').replace('.', '_'), func_name),
                     module=module,
                     name=name,
                     permission=permission,
@@ -50,6 +49,7 @@ def route(module=None, name=None, permission=True, ajax=True, referer=None, **kw
 
             # 处理请求中的json参数
             # 处理后可能会在 request 上添加一个 json 的项，此项存放着json格式的 body 内容
+            # noinspection PyTypeChecker
             _process_json_params(request)
 
             # 返回了 HttpResponse，直接返回此对象
@@ -116,41 +116,38 @@ def _process_json_params(request):
         logger.warning('Deserialize request body fail: %s' % str(e))
 
 
-def _parameter_is_missing(signature, arg_name):
-    logger.error('Missing required parameter "%s", signature: %s' % (arg_name, str(signature)))
+def _get_parameter_str(args: OrderedDict):
+    return ', '.join([str(args[arg]) for arg in args])
 
 
-def _get_value(data: dict, name: str, arg_spec: ArgumentSpecification, signature, backup: dict = None):
+def _get_value(data: dict, name: str, arg_spec: ArgumentSpecification, backup: dict = None):
     """
 
     :param data:
     :param name:
     :param arg_spec:
-    :param signature:
     :return: True 表示使用默认值 False 表示未使用默认值 None 表示无值
     """
-    # 内容变量时，移除末尾的 _ 符号
-    # 内容变量时，移除末尾的 _ 符号
-    inner_name = name.rstrip('_')
     if name in data:
         return False, data[name]
 
-    if inner_name in data:
-        return False, data[inner_name]
+    alias = arg_spec.alias
+
+    if alias is not None and alias in data:
+        return False, data[alias]
 
     if backup is not None:
         if name in backup:
             return False, backup[name]
 
-        if inner_name in backup:
-            return False, backup[inner_name]
+        if alias is not None and alias in backup:
+            return False, backup[alias]
 
     # 使用默认值
     if arg_spec.has_default:
         return True, arg_spec.default
 
     # 缺少无默认值的参数
-    _parameter_is_missing(signature, name)
     return None, None
 
 
@@ -158,14 +155,12 @@ def _get_actual_args(request: HttpRequest, func, args: OrderedDict) -> dict or H
     method = request.method.lower()
     actual_args = {}
 
-    import inspect
-    signature = inspect.signature(func)
-
     # 已使用的参数名称，用于后期填充可变参数时作排除用
     used_args = []
     # 是否声明了可变参数
     has_variable_args = False
 
+    # noinspection PyUnresolvedReferences
     arg_source = request.G if method in ['delete', 'get'] else request.P
 
     for arg_name in args.keys():
@@ -188,10 +183,12 @@ def _get_actual_args(request: HttpRequest, func, args: OrderedDict) -> dict or H
             actual_args[arg_name] = request
             continue
 
-        use_default, arg_value = _get_value(arg_source, arg_name, arg_spec, signature, request.B)
+        # noinspection PyUnresolvedReferences
+        use_default, arg_value = _get_value(arg_source, arg_name, arg_spec, request.B)
 
         # 未找到参数
         if use_default is None:
+            logger.warning('Missing required parameter "%s": (%s)' % (arg_name, _get_parameter_str(args)))
             return HttpResponseBadRequest('Parameter "%s" is required' % arg_name)
 
         # 使用默认值
@@ -216,14 +213,16 @@ def _get_actual_args(request: HttpRequest, func, args: OrderedDict) -> dict or H
 
         # 类型不一致，尝试转换类型
         # 转换失败时，会抛出异常
+        # noinspection PyBroadException
         try:
             # 当 arg_value 是字符串，arg_spec的类型是对象时，尝试解析成 json
             if arg_spec.annotation in (dict, list) and isinstance(arg_value, str):
+                # noinspection PyBroadException
                 try:
                     arg_value = json.loads(arg_value)
                     if isinstance(arg_value, (list, dict)):
                         arg_value = DotDict.parse(arg_value)
-                except:
+                except Exception:
                     # 此处的异常直接忽略即可
                     logger.warning('Value for "%s!%s" may be incorrect: %s' % (func.__name__, arg_name, arg_value))
 
@@ -234,8 +233,8 @@ def _get_actual_args(request: HttpRequest, func, args: OrderedDict) -> dict or H
                     continue
             actual_args[arg_name] = arg_spec.annotation(arg_value)
             used_args.append(arg_name)
-        except:
-            msg = 'Parameter type of "%s" mismatch, signature: %s' % (arg_name, str(signature))
+        except Exception:
+            msg = 'Parameter type of "%s" mismatch, signature: %s' % (arg_name, _get_parameter_str(args))
             logger.warning(msg)
             return HttpResponseBadRequest(msg)
 
@@ -249,9 +248,11 @@ def _get_actual_args(request: HttpRequest, func, args: OrderedDict) -> dict or H
             continue
         variable_args[item] = arg_source[item]
 
+    # noinspection PyUnresolvedReferences
     for item in request.B:
         if item in used_args:
             continue
+        # noinspection PyUnresolvedReferences
         variable_args[item] = request.B[item]
 
     actual_args.update(variable_args)
