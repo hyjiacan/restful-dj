@@ -54,7 +54,17 @@ class MiddlewareBase:
 
     def process_request(self, request: HttpRequest, meta: RouteMeta, **kwargs):
         """
-        对 request 对象进行预处理。一般用于请求的数据的解码
+        对 request 对象进行预处理。一般用于请求的数据的解码，此时路由组件尚水进行请求数据的解析(B,P,G 尚不可用)
+        :param request:
+        :param meta:
+        :return: 返回 HttpResponse 以终止请求，返回 False 以停止执行后续的中间件(表示访问未授权)，返回 None 或不返回任何值继续执行后续中间件
+        """
+        pass
+
+    def process_invoke(self, request: HttpRequest, meta: RouteMeta, **kwargs):
+        """
+        在路由函数调用前，对其参数等进行处理，此时路由组件已经完成了请求数据的解析(B,P,G 已可用)
+        此时可以对解析后的参数进行变更
         :param request:
         :param meta:
         :return: 返回 HttpResponse 以终止请求，返回 False 以停止执行后续的中间件(表示访问未授权)，返回 None 或不返回任何值继续执行后续中间件
@@ -103,6 +113,24 @@ class MiddlewareManager:
             result = middleware.process_request(self.request, self.meta)
             if isinstance(result, HttpResponse):
                 return result
+            # 返回 False 以阻止后续中间件执行
+            if result is False:
+                return
+
+    def before_invoke(self):
+        """
+        在路由函数调用前，对其参数等进行处理
+        :return:
+        """
+        for middleware in MIDDLEWARE_INSTANCE_LIST:
+            if not hasattr(middleware, 'process_invoke'):
+                continue
+            result = middleware.process_invoke(self.request, self.meta)
+            if isinstance(result, HttpResponse):
+                return result
+            # 返回 False 以阻止后续中间件执行
+            if result is False:
+                return
 
     def process_return(self, data):
         """

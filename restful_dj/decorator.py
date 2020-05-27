@@ -52,6 +52,8 @@ def route(module=None, name=None, permission=True, ajax=True, referer=None, **kw
             # noinspection PyTypeChecker
             _process_json_params(request)
 
+            mgr.before_invoke()
+
             # 返回了 HttpResponse，直接返回此对象
             if isinstance(result, HttpResponse):
                 return mgr.end(result)
