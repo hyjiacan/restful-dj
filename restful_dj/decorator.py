@@ -33,7 +33,8 @@ def route(module=None, name=None, permission=True, ajax=True, referer=None, **kw
             mgr = MiddlewareManager(
                 request,
                 RouteMeta(
-                    func_name,
+                    func,
+                    args,
                     route_id='%s_%s' % (func.__module__.replace('_', '__').replace('.', '_'), func_name),
                     module=module,
                     name=name,

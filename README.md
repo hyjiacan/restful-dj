@@ -241,38 +241,82 @@ restful_dj.set_before_dispatch_handler(before_dispatch_handler)
 路由元数据。
 
 ```python
-class RouteMeta:
+from types import FunctionType
+from typing import OrderedDict
+
+class RouteMeta:  
     @property
-    def handler(self):
-        pass
+    def handler(self) -> FunctionType:
+        """
+        路由处理函数对象
+        :return:
+        """
+        return self._handler
 
     @property
-    def id(self):
-        pass
+    def func_args(self) -> OrderedDict:
+        """
+        路由处理函数参数列表
+        :return:
+        """
+        return self._func_args
 
     @property
-    def module(self):
-        pass
+    def id(self) -> str:
+        """
+        路由ID，此ID由路由相关信息组合而成
+        :return:
+        """
+        return self._id
 
     @property
-    def name(self):
-        pass
+    def module(self) -> str:
+        """
+        装饰器上指定的 module 值
+        :return:
+        """
+        return self._module
 
     @property
-    def permission(self):
-        pass
+    def name(self) -> str:
+        """
+        装饰器上指定的 name 值
+        :return:
+        """
+        return self._name
 
     @property
-    def ajax(self):
-        pass
+    def permission(self) -> bool:
+        """
+        装饰器上指定的 permission 值
+        :return:
+        """
+        return self._permission
 
     @property
-    def referer(self):
-        pass
+    def ajax(self) -> bool:
+        """
+        装饰器上指定的 ajax 值
+        :return:
+        """
+        return self._ajax
 
     @property
-    def kwargs(self):
-        pass
+    def referer(self) -> str:
+        """
+        装饰器上指定的 referer 值
+        :return:
+        """
+        return self._referer
+
+    @property
+    def kwargs(self) -> dict:
+        """
+        装饰器上指定的其它参数
+        :return:
+        :rtype: Dict
+        """
+        return self._kwargs
 ```
 
 注册到 *settings.py* 的 `RESTFUL_DJ.middleware` 列表中。中间件将按顺序执行。
