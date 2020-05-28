@@ -190,8 +190,8 @@ def _get_actual_args(request: HttpRequest, func, args: OrderedDict) -> dict or H
 
         # 未找到参数
         if use_default is None:
-            logger.warning('Missing required parameter "%s": (%s)' % (arg_name, _get_parameter_str(args)))
-            return HttpResponseBadRequest('Parameter "%s" is required' % arg_name)
+            logger.warning('Missing required argument "%s": (%s)' % (arg_name, _get_parameter_str(args)))
+            return HttpResponseBadRequest('Argument "%s" is required' % arg_name)
 
         # 使用默认值
         if use_default is True:
@@ -201,6 +201,12 @@ def _get_actual_args(request: HttpRequest, func, args: OrderedDict) -> dict or H
 
         # 未指定类型
         if not arg_spec.has_annotation:
+            actual_args[arg_name] = arg_value
+            used_args.append(arg_name)
+            continue
+
+        # 当值为 None 时，不作数据类型校验
+        if arg_value is None:
             actual_args[arg_name] = arg_value
             used_args.append(arg_name)
             continue
@@ -236,7 +242,8 @@ def _get_actual_args(request: HttpRequest, func, args: OrderedDict) -> dict or H
             actual_args[arg_name] = arg_spec.annotation(arg_value)
             used_args.append(arg_name)
         except Exception:
-            msg = 'Parameter type of "%s" mismatch, signature: %s' % (arg_name, _get_parameter_str(args))
+            msg = 'Argument type of "%s" mismatch, expect type "%s" but got "%s", signature: (%s)' \
+                  % (arg_name, arg_spec.annotation.__name__, type(arg_value).__name__, _get_parameter_str(args))
             logger.warning(msg)
             return HttpResponseBadRequest(msg)
 
