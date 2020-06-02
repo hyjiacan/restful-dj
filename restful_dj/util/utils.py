@@ -1,12 +1,17 @@
 import inspect
 import re
 from collections import OrderedDict
-from re import Match
 
 from django.http import HttpRequest
 
 
-def _get_parameter_alias(match: Match):
+def _get_parameter_alias(match):
+    """
+
+    :param match:
+    :type match: Match
+    :return:
+    """
     ch = match.group('ch')
     return '' if ch is None else ch.upper()
 

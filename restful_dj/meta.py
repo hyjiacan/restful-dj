@@ -1,5 +1,4 @@
 from types import FunctionType
-from typing import OrderedDict
 
 
 class RouteMeta:
@@ -48,10 +47,11 @@ class RouteMeta:
         return self._handler
 
     @property
-    def func_args(self) -> OrderedDict:
+    def func_args(self):
         """
         路由处理函数参数列表
         :return:
+        :rtype: OrderedDict
         """
         return self._func_args
 
