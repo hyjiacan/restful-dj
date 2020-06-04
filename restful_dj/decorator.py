@@ -48,16 +48,20 @@ def route(module=None, name=None, permission=True, ajax=True, referer=None, **kw
             # 调用中间件，以处理请求
             result = mgr.begin()
 
+            # 返回了 HttpResponse，直接返回此对象
+            if isinstance(result, HttpResponse):
+                return mgr.end(result)
+
+            # 返回了 False，表示未授权访问
+            if result is False:
+                return mgr.end(HttpResponseUnauthorized())
+
             # 处理请求中的json参数
             # 处理后可能会在 request 上添加一个 json 的项，此项存放着json格式的 body 内容
             # noinspection PyTypeChecker
             _process_json_params(request)
 
-            mgr.before_invoke()
-
-            # 返回了 HttpResponse，直接返回此对象
-            if isinstance(result, HttpResponse):
-                return mgr.end(result)
+            result = mgr.before_invoke()
 
             # 返回了 False，表示未授权访问
             if result is False:
