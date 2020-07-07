@@ -225,6 +225,20 @@ def _get_actual_args(request: HttpRequest, func, args: OrderedDict) -> dict or H
             continue
 
         # 类型不一致，尝试转换类型
+
+        # 当声明的参数类型是布尔类型时，收到的值可能是一个字符串（其值为 true 、 false）
+        if arg_spec.annotation is bool and isinstance(arg_value, str):
+            if arg_value == 'true':
+                actual_args[arg_name] = True
+                used_args.append(arg_name)
+            elif arg_value == 'false':
+                actual_args[arg_name] = False
+                used_args.append(arg_name)
+            else:
+                logger.error('Value for "%s!%s" may be incorrect (a boolean value expected: true/false): %s' % (
+                    func.__name__, arg_name, arg_value))
+            continue
+
         # 转换失败时，会抛出异常
         # noinspection PyBroadException
         try:
