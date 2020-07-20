@@ -103,8 +103,8 @@ def _process_json_params(request):
     request.P = DotDict()
 
     if request.content_type != 'application/json':
-        request.G = DotDict.parse(request.GET.dict())
-        request.P = DotDict.parse(request.POST.dict())
+        request.G = DotDict.parse(request.GET.dict(), False)
+        request.P = DotDict.parse(request.POST.dict(), False)
         return
 
     # 如果请求是json类型，就先处理一下
@@ -116,9 +116,9 @@ def _process_json_params(request):
 
     try:
         if isinstance(body, (bytes, str)):
-            request.B = DotDict.parse(json.loads(body))
+            request.B = DotDict.parse(json.loads(body), False)
         elif isinstance(body, (dict, list)):
-            request.B = DotDict.parse(body)
+            request.B = DotDict.parse(body, False)
     except Exception as e:
         logger.warning('Deserialize request body fail: %s' % str(e))
 
@@ -248,7 +248,7 @@ def _get_actual_args(request: HttpRequest, func, args: OrderedDict) -> dict or H
                 try:
                     arg_value = json.loads(arg_value)
                     if isinstance(arg_value, (list, dict)):
-                        arg_value = DotDict.parse(arg_value)
+                        arg_value = DotDict.parse(arg_value, False)
                 except Exception:
                     # 此处的异常直接忽略即可
                     logger.warning('Value for "%s!%s" may be incorrect: %s' % (func.__name__, arg_name, arg_value))
