@@ -55,11 +55,6 @@ def collect(*environments):
 
         # 遍历目录，找出所有的 .py 文件
         for (dir_name, dirs, files) in os.walk(route_root):
-            # 可能是包
-            pkg_file = path.abspath(path.join(dir_name, '__init__.py'))
-            if path.exists(pkg_file) and path.isfile(pkg_file):
-                get_route_defines(route_root, pkg_file, http_prefix, pkg_prefix, routes, route_env)
-
             for file in files:
                 # 不是 .py 文件，忽略
                 if not file.endswith('.py'):
@@ -116,15 +111,22 @@ def resolve_file(route_define, fullname, http_prefix, pkg_prefix, route_env: dic
         # 利用 eval 解析出路由的定义（在这个文件中定义了与装饰器相同的函数，以便于读取装饰器的参数）
         router_str = router_str.replace('route', 'fake_route')
         define = eval(router_str, route_env)
+
         # 构造http请求的地址
         # -3 是为了干掉最后的 .py 字样
         pkg = re.sub(r'[/\\]', '.', path.relpath(fullname, route_define))[0:-3]
 
         # 当是包时，移除 __init__ 部分
-        if pkg.endswith('.__init__'):
-            http_path = '%s.%s' % (http_prefix, pkg[0:-len('.__init__')])
+        if path.basename(fullname) == '__init__.py':
+            http_path = '%s.%s' % (http_prefix, pkg[0:-len('__init__')])
         else:
             http_path = '%s.%s' % (http_prefix, pkg)
+
+        # 当路由文件为根目录下的 __init__.py 时，没有可访问的文件名
+        # 此时会出现得到的路由为  xxx. 的情况
+        # 所以在此移除末尾的 . 符号
+        http_path = http_path.rstrip('.')
+
         # 如果指定了名称，就追加到地址后
         if name is not None:
             http_path += '/' + name
@@ -176,5 +178,5 @@ def resolve_func(func: str):
     :param func:
     :return:
     """
-    method, lodash, name = re.match(r'(get|post|delete|put|option|patch|connect)(_(.+))?', func).groups()
+    method, lodash, name = re.match(r'([a-z]+)(_(.+))?', func).groups()
     return method, name
