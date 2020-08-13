@@ -3,6 +3,7 @@ import os
 
 from django.conf import settings
 from django.http import HttpResponseNotFound, HttpResponseServerError, HttpRequest, HttpResponse
+from django.shortcuts import render
 
 from .util import collector, utils
 from .util import logger
@@ -18,6 +19,9 @@ _BEFORE_DISPATCH_HANDLER = None
 
 # 线上模式时，使用固定路由
 PRODUCTION_ROUTES = {}
+
+# 开发模式的模块缓存，用于API列表
+MODULES_CACHE = None
 
 
 def _load_production_routes():
@@ -41,6 +45,50 @@ def set_before_dispatch_handler(handler):
     _BEFORE_DISPATCH_HANDLER = handler
 
 
+def render_list(request):
+    if not settings.DEBUG:
+        return HttpResponseNotFound()
+
+    global MODULES_CACHE
+
+    prefix = '%s://%s%s' % (request.scheme, request.META.get('HTTP_HOST'), request.path)
+
+    if MODULES_CACHE is None:
+        routes = collector.collect()
+
+        modules = {}
+
+        for route in routes:
+            module = route['module']
+
+            p = route['path']
+            entry = ''
+            suffix = ''
+            temp = p.split('/')
+            entry = temp[0]
+            if len(temp) == 2:
+                suffix = temp[1]
+
+            router = Router(request, route['method'], entry, suffix)
+            router.check()
+            define = router.get_func_define()
+            if define and len(define['args']) > 0:
+                route['args'] = [define['args'][arg] for arg in define['args']]
+            else:
+                route['args'] = None
+
+            if module in modules:
+                modules[module].append(route)
+            else:
+                modules[module] = [route]
+        MODULES_CACHE = modules
+
+    return render(request, 'restful_dj_api_list_template.html', {
+        'modules': MODULES_CACHE,
+        'prefix': prefix
+    })
+
+
 def dispatch(request, entry, name=''):
     """
     REST-ful 路由分发入口
@@ -58,7 +106,7 @@ def dispatch(request, entry, name=''):
             _load_production_routes()
         return _route_for_production(request, entry, name)
 
-    router = Router(request, entry, name)
+    router = Router(request, request.method, entry, name)
     check_result = router.check()
     if isinstance(check_result, HttpResponse):
         return check_result
@@ -89,10 +137,10 @@ def _invoke_handler(request, func, args):
 
 
 class Router:
-    def __init__(self, request: HttpRequest, entry: str, name: str):
+    def __init__(self, request: HttpRequest, method: str, entry: str, name: str):
         self.request = request
         self.entry = entry
-        method = request.method.lower()
+        method = method.lower()
         self.method = method
 
         # 如果指定了名称，那么就加上

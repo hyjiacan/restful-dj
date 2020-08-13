@@ -1,17 +1,17 @@
 # restful-dj
 
-**重要提示：此库当前处于预开发阶段，接口与用法可能发生变化，请勿用于生产环境** 
-
-基于 Django2/3 的 restful 自动路由支持组件。
+基于 Django2/3 的 restful 自动路由框架。
 
 此包解决的问题：
 
-- 解决 Django 繁锁的路由配置
-- 提供更便捷的 restful 编码体验
-- 自动解析请求参数，填充到路由处理函数
+- 告别 Django 繁锁的路由配置
+- 更便捷的 restful 编码体验
+- 自动解析/校验请求参数，填充到路由处理函数
 
 ## 安装
 
+Gitee: https://gitee.com/hyjiacan/restful-dj
+Github: https://github.com/hyjiacan/restful-dj
 PyPI: https://pypi.org/project/restful-dj/ 
 
 ```shell script
@@ -36,6 +36,8 @@ urlpatterns = [
 ```
 
 其中，`any/prefix` 是用户自定义的url前缀，可以使用空串 `''`
+
+注：可以通过部署地址 `any/prefix` 访问接口列表 (仅在开发模式时可用)。
 
 ### 配置
 
@@ -421,4 +423,4 @@ routes = collector.collect()
 
 ## 更新记录
 
-> 研发阶段暂不记录
+

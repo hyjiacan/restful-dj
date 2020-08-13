@@ -39,6 +39,8 @@ class ArgumentSpecification:
         self.annotation = None
         # 默认值
         self.default = None
+        # 注释
+        self.comment = None
         # 别名，当路由处理函数中声明的是 abc_def 时，自动处理为 abcDef
         # 同时会移除所有的 _ 符号
         self.alias = re.sub('_+(?P<ch>.?)', _get_parameter_alias, name)
@@ -46,13 +48,40 @@ class ArgumentSpecification:
         if self.alias == name:
             self.alias = None
 
+    @property
+    def annotation_name(self):
+        return self.annotation.__name__ if self.has_annotation else 'any'
+
     def __str__(self):
+        arg_type = self.annotation_name
         arg_type = self.annotation.__name__ if self.has_annotation else 'any'
 
-        if self.alias is None:
-            return '%s: %s' % (self.name, arg_type)
+        name = self.name if self.alias is None else '%s/%s' % (self.name, self.alias)
 
-        return '%s/%s: %s' % (self.name, self.alias, arg_type)
+        if self.has_default:
+            default_value = "'%s'" % (self.default) if isinstance(self.default, str) else self.default
+            return '%s: %s=%s' % (name, arg_type, default_value)
+
+        return '%s: %s' % (name, arg_type)
+
+
+def get_func_docs(func):
+    docs = {}
+    doc_str: str = func.__doc__
+    if doc_str is None:
+        return docs
+
+    temp = doc_str.splitlines(False)
+
+    for row in temp:
+        if not row:
+            continue
+        match = re.match('\s*:param\s+(?P<name>[\S]+):(?P<comment>.*)$', row)
+        if not match:
+            continue
+        docs[match.group('name')] = match.group('comment')
+
+    return docs
 
 
 def get_func_args(func):
@@ -65,12 +94,17 @@ def get_func_args(func):
     parameters = signature.parameters
     _empty = signature.empty
 
+    documatation = get_func_docs(func)
+
     args = OrderedDict()
     index = 0
     for p in parameters.keys():
         parameter = parameters.get(p)
         spec = ArgumentSpecification(p, index)
         spec.is_variable = parameter.kind == parameter.VAR_KEYWORD
+
+        if p in documatation:
+            spec.comment = documatation[p]
 
         index += 1
         # 类型

@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Table of APIs - restful-dj</title>
+  <style>
+  .container {
+      width: 1200px;
+      margin: 0 auto;
+      color: #333333;
+  }
+
+  h1 {
+      float: left;
+  }
+
+  .tools {
+      float: right;
+      margin-top: 24px;
+  }
+
+  hr {
+      clear: both;
+      border-width: 3px;
+  }
+
+  .method {
+      text-transform: uppercase;
+      color: #e90588;
+      padding: 0 5px;
+  }
+
+  .tip {
+      color: #88888888;
+      font-size: 14px;
+  }
+
+  .args-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+  }
+
+  .args-table tr:nth-child(2n) {
+      background-color: #f9f9f5;
+  }
+
+  .args-table tr:hover {
+      background-color: #f9f9e8;
+  }
+
+  .args-table th {
+      background-color: #f6f8fb;
+  }
+
+  .args-table th,
+  .args-table td {
+      border: 1px solid #cfd7de;
+      padding: 5px;
+  }
+
+  details {
+      margin-bottom: 20px;
+      border-left: 1px dotted transparent;
+      clear: both;
+  }
+
+  details summary {
+      cursor: default;
+      outline: none;
+  }
+
+  .anchor {
+      visibility: hidden;
+      text-decoration: none;
+      font-size: large;
+      font-weight: bold;
+  }
+
+  details summary:hover {
+      background-color: #eeeeee;
+  }
+
+  details:hover summary .anchor,
+  details li:hover .anchor {
+      visibility: visible;
+  }
+
+  details:hover {
+      border-left-color: #888888;
+  }
+
+  details li {
+      margin-bottom: 40px;
+  }
+
+  details[open] summary {
+      border-bottom: 1px solid #b9b6b6;
+      padding: 5px 0;
+      position: sticky;
+      top: 0;
+      background-color: #ffffff;
+  }
+
+  .info {
+      background-color: #fffdd9;
+      padding: 5px 0;
+      border: 1px solid #f1eeb5;
+  }
+
+  code.url {
+      color: #fe0794;
+  }
+
+  .permission {
+      font-size: 12px;
+      padding: 2px 5px;
+      background-color: #eaeaea;
+      color: #f78612;
+  }
+
+  footer {
+      text-align: center;
+      font-size: 14px;
+  }
+  </style>
+  <script>
+  var all
+
+  function getAll() {
+    if (all) {
+      return all
+    }
+    all = document.body.querySelectorAll('details')
+    return all
+  }
+
+  function collapseAll() {
+    getAll().forEach(function (item) {
+      item.removeAttribute('open')
+    })
+  }
+
+  function expandAll() {
+    getAll().forEach(function (item) {
+      item.setAttribute('open', '')
+    })
+  }
+
+  </script>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>Table of APIs</h1>
+    <div class="tools">
+      <button onclick="collapseAll()">全部收起</button>
+      <button onclick="expandAll()">全部展开</button>
+    </div>
+  </header>
+  <hr>
+  {% for module, routes in modules.items %}
+  <details open>
+    <summary>
+      <a href="#{{module}}" id="{{module}}" class="anchor">#</a>
+      <span>{{module}}</span>
+    </summary>
+    <ul>
+      {% for route in routes %}
+      <li>
+        <a href="#{{module}}-{{route.name}}" id="{{module}}-{{route.name}}" class="anchor">#</a>
+        <span>{{route.name}}</span>
+        {% if route.login %}
+        <span class="permission">需要登录</span>
+        {% endif %}
+        {% if route.permission %}
+        <span class="permission">权限校验</span>
+        {% endif %}
+        {% if route.ajax %}
+        <span class="permission">仅AJAX</span>
+        {% endif %}
+        <p class="info">
+          <span class="method">{{route.method}}</span>
+          <code class="url">{{prefix}}{{route.path}}</code>
+        </p>
+        {% if route.args is not None %}
+        <div>参数信息</div>
+        <table class="args-table">
+          <thead>
+          <tr>
+            <th>名称</th>
+            <th>类型</th>
+            <th>默认值</th>
+            <th>描述</th>
+          </tr>
+          </thead>
+          <tbody>
+          {% for arg in route.args %}
+          <tr>
+            <td>{{arg.name}}</td>
+            <td>
+              <code>
+                {% if arg.has_annotation %}
+                {{arg.annotation_name}}
+                {% else %}
+                any
+                {% endif %}
+              </code>
+            </td>
+            <td>
+              <code>
+                {% if arg.has_default %}
+                {{arg.default}}
+                {% else %}
+                -
+                {% endif %}
+              </code>
+            </td>
+            <td>
+              {% if arg.comment %}
+              {{arg.comment}}
+              {% else %}
+              -
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <span class="tip">无参数</span>
+        {% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+  </details>
+  {% endfor %}
+  <hr>
+  <footer>
+    Powered by <a href="http://github.com/hyjiacan/restful-dj">restful-dj</a>
+  </footer>
+</div>
+</body>
+</html>
