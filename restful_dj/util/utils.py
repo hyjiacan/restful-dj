@@ -4,6 +4,8 @@ from collections import OrderedDict
 
 from django.http import HttpRequest
 
+from . import logger
+
 
 def _get_parameter_alias(match):
     """
@@ -53,10 +55,11 @@ class ArgumentSpecification:
         return self.annotation.__name__ if self.has_annotation else 'any'
 
     def __str__(self):
-        arg_type = self.annotation_name
         arg_type = self.annotation.__name__ if self.has_annotation else 'any'
 
-        name = self.name if self.alias is None else '%s/%s' % (self.name, self.alias)
+        name = self.name
+
+        name = name if self.alias is None else '%s/%s' % (name, self.alias)
 
         if self.has_default:
             default_value = "'%s'" % (self.default) if isinstance(self.default, str) else self.default
@@ -109,6 +112,25 @@ def get_func_args(func):
         index += 1
         # 类型
         annotation = parameter.annotation
+
+        # 无效的类型声明
+        if not inspect.isclass(annotation):
+            source_lines = inspect.getsourcelines(func)
+            line = source_lines[1]
+            row = None
+            for row in source_lines[0]:
+                if parameter.name in row:
+                    break
+                line += 1
+            msg = 'File "%s", line %d, in %s\n\t' % (
+                inspect.getmodule(func).__file__,
+                line,
+                func.__name__
+            )
+            msg += 'Invalid type declaration for argument "%s":\n\t\t%s'
+            # abort the execution
+            logger.error(msg % (parameter.name, row.strip()))
+
         default = parameter.default
 
         if default != _empty:
@@ -144,3 +166,13 @@ def load_module(module_name: str):
     """
     # noinspection PyTypeChecker
     return __import__(module_name, fromlist=True)
+
+
+def get_func_info(func):
+    source_lines = inspect.getsourcelines(func)
+    line = source_lines[1]
+    return 'File "%s", line %d, in %s' % (
+        inspect.getmodule(func).__file__,
+        line,
+        func.__name__
+    )

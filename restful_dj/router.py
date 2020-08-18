@@ -142,7 +142,7 @@ def _invoke_handler(request, func, args):
     try:
         return func(request, args)
     except Exception as e:
-        message = '[restful-dj]'
+        message = '[restful-dj]\n\t%s' % utils.get_func_info(func)
         logger.error(message, e)
         return HttpResponseServerError('%s: %s' % (message, str(e)))
 
@@ -200,7 +200,7 @@ class Router:
         # 如果 func_define 为 False ，那就表示此函数不存在
         if func_define is False:
             message = 'Route "%s.%s" not found' % (self.module_name, self.func_name)
-            logger.error(message)
+            logger.info(message)
             return HttpResponseNotFound()
 
         if func_define is HttpResponse:
@@ -240,7 +240,10 @@ class Router:
         # 通过反射从模块加载函数
         func = getattr(entry_define, func_name)
         if not self.is_valid_route(func):
-            msg = 'Decorator "@route" not found on function "%s", did you forgot it ?' % fullname
+            msg = '%s\n\tDecorator "@route" not found on function "%s", did you forgot it ?' % (
+                utils.get_func_info(func),
+                fullname
+            )
             logger.warning(msg)
             # 没有配置装饰器@route，则认为函数不可访问，更新缓存
             ENTRY_CACHE[func_name] = False

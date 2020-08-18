@@ -38,7 +38,7 @@ def warning(message):
 
 
 def error(message, e=None, _raise=True):
-    temp = message if e is None else '%s: %s' % (message, repr(e))
+    temp = message if e is None else '%s\n\t%s' % (message, repr(e))
 
     # 非开发模式时，始终不会输出堆栈信息
     if not settings.DEBUG:
@@ -59,6 +59,6 @@ def error(message, e=None, _raise=True):
         raise Exception(message)
 
     # 修改异常消息
-    new_msg = '%s: %s' % (message, e.args[0]) if len(e.args) > 0 else message
+    new_msg = '%s\n\t%s' % (message, e.args[0]) if len(e.args) > 0 else message
     e.args = (new_msg,)
     raise e
