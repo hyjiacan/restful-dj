@@ -12,7 +12,9 @@ urls = (
     [
         path('', router.render_list),
         path('<str:entry>', router.dispatch),
-        path('<str:entry>/<str:name>', router.dispatch)
+        path('<str:entry>/', router.redirect),
+        path('<str:entry>/<str:name>', router.dispatch),
+        path('<str:entry>/<str:name>/', router.redirect)
     ],
     router.NAME,
     router.NAME

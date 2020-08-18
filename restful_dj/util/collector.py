@@ -148,12 +148,11 @@ def resolve_file(route_define, fullname, http_prefix, pkg_prefix, route_env: dic
         yield define
 
 
-def fake_route(module=None, name=None, login=True, permission=True, ajax=True, referer=None, **kwargs):
+def fake_route(module=None, name=None, permission=True, ajax=True, referer=None, **kwargs):
     """
     此函数用于帮助读取装饰器的参数
     :param module:
     :param name:
-    :param login:
     :param permission:
     :param ajax:
     :param referer:
@@ -164,7 +163,6 @@ def fake_route(module=None, name=None, login=True, permission=True, ajax=True, r
     return {
         'module': module,
         'name': name,
-        'login': login,
         'permission': permission,
         'ajax': ajax,
         'referer': referer,

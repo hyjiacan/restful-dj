@@ -20,6 +20,14 @@
       margin-top: 24px;
   }
 
+  .buttons {
+      text-align: right;
+  }
+
+  .filters {
+      margin-top: 5px;
+  }
+
   hr {
       clear: both;
       border-width: 3px;
@@ -124,39 +132,33 @@
       text-align: center;
       font-size: 14px;
   }
+
+  .hide {
+      display: none;
+  }
   </style>
-  <script>
-  var all
-
-  function getAll() {
-    if (all) {
-      return all
-    }
-    all = document.body.querySelectorAll('details')
-    return all
-  }
-
-  function collapseAll() {
-    getAll().forEach(function (item) {
-      item.removeAttribute('open')
-    })
-  }
-
-  function expandAll() {
-    getAll().forEach(function (item) {
-      item.setAttribute('open', '')
-    })
-  }
-
-  </script>
 </head>
 <body>
 <div class="container">
   <header>
     <h1>Table of APIs</h1>
     <div class="tools">
-      <button onclick="collapseAll()">全部收起</button>
-      <button onclick="expandAll()">全部展开</button>
+      <div class="buttons">
+        <button onclick="collapseAll()">全部收起</button>
+        <button onclick="expandAll()">全部展开</button>
+      </div>
+      <div class="filters">
+        <span>过滤: </span>
+        <select id="filter-permission">
+          <option value="">全部权限状态</option>
+          <option value="True">校验权限</option>
+          <option value="False">无需校验</option>
+        </select>
+        <select id="filter-ajax">
+          <option value="">全部请求状态</option>
+          <option value="True">仅限AJAX</option>
+        </select>
+      </div>
     </div>
   </header>
   <hr>
@@ -166,14 +168,13 @@
       <a href="#{{module}}" id="{{module}}" class="anchor">#</a>
       <span>{{module}}</span>
     </summary>
-    <ul>
+    <ul class="api-list">
       {% for route in routes %}
-      <li>
+      <li class="api-item"
+          data-permission="{{route.permission}}"
+          data-ajax="{{route.ajax}}">
         <a href="#{{module}}-{{route.name}}" id="{{module}}-{{route.name}}" class="anchor">#</a>
         <span>{{route.name}}</span>
-        {% if route.login %}
-        <span class="permission">需要登录</span>
-        {% endif %}
         {% if route.permission %}
         <span class="permission">权限校验</span>
         {% endif %}
@@ -204,7 +205,7 @@
                 {% if arg.has_annotation %}
                 {{arg.annotation_name}}
                 {% else %}
-                any
+                Any
                 {% endif %}
               </code>
             </td>
@@ -241,5 +242,72 @@
     Powered by <a href="http://github.com/hyjiacan/restful-dj">restful-dj</a>
   </footer>
 </div>
+<script>
+var all
+var apis
+
+function getAll() {
+  if (all) {
+    return all
+  }
+  all = document.body.querySelectorAll('details')
+  return all
+}
+
+function getApis() {
+  if (apis) {
+    return apis
+  }
+  apis = document.body.querySelectorAll('li.api-item')
+  return apis
+}
+
+function collapseAll() {
+  getAll().forEach(function (item) {
+    item.removeAttribute('open')
+  })
+}
+
+function expandAll() {
+  getAll().forEach(function (item) {
+    item.setAttribute('open', '')
+  })
+}
+
+var filterPermission = document.querySelector('#filter-permission')
+var filterAjax = document.querySelector('#filter-ajax')
+
+filterPermission.addEventListener('change', doFilter)
+filterAjax.addEventListener('change', doFilter)
+
+function doFilter() {
+  var params = {
+    permission: filterPermission.value,
+    ajax: filterAjax.value
+  }
+  getApis().forEach(function (item) {
+    if (params.permission && item.dataset.permission !== params.permission) {
+      item.classList.add('hide')
+      return
+    }
+    if (params.ajax && item.dataset.ajax !== params.ajax) {
+      item.classList.add('hide')
+      return
+    }
+    item.classList.remove('hide')
+  })
+
+  // 隐藏没有可见API的模块
+  getAll().forEach(function (module) {
+    var apis = module.querySelectorAll('li.api-item:not(.hide)')
+    console.info(apis)
+    if (apis.length) {
+      module.classList.remove('hide')
+    } else {
+      module.classList.add('hide')
+    }
+  })
+}
+</script>
 </body>
 </html>

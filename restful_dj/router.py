@@ -1,9 +1,9 @@
 import inspect
 import os
 
+from django import shortcuts
 from django.conf import settings
 from django.http import HttpResponseNotFound, HttpResponseServerError, HttpRequest, HttpResponse
-from django.shortcuts import render
 
 from .util import collector, utils
 from .util import logger
@@ -45,6 +45,17 @@ def set_before_dispatch_handler(handler):
     _BEFORE_DISPATCH_HANDLER = handler
 
 
+def redirect(request, entry, name=''):
+    """
+    当请求的URL使用了 / 结尾时，重定向到不使用 / 结尾的地址
+    :param request:
+    :param entry:
+    :param name:
+    :return:
+    """
+    return shortcuts.redirect(request.path.rstrip('/'))
+
+
 def render_list(request):
     if not settings.DEBUG:
         return HttpResponseNotFound()
@@ -83,7 +94,7 @@ def render_list(request):
                 modules[module] = [route]
         MODULES_CACHE = modules
 
-    return render(request, 'restful_dj_api_list_template.html', {
+    return shortcuts.render(request, 'restful_dj_api_list_template.html', {
         'modules': MODULES_CACHE,
         'prefix': prefix
     })
