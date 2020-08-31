@@ -9,6 +9,7 @@ from .middleware import MiddlewareManager
 from .util import logger
 from .util.dot_dict import DotDict
 from .util.utils import ArgumentSpecification
+from .util.utils import get_func_info
 
 
 def route(module=None, name=None, permission=True, ajax=True, referer=None, **kwargs):
@@ -124,7 +125,7 @@ def _process_json_params(request):
 
 
 def _get_parameter_str(args: OrderedDict):
-    return ', '.join([str(args[arg]) for arg in args])
+    return '\n\t\t'.join([str(args[arg]) for arg in args])
 
 
 def _get_value(data: dict, name: str, arg_spec: ArgumentSpecification, backup: dict = None):
@@ -195,8 +196,13 @@ def _get_actual_args(request: HttpRequest, func, args: OrderedDict) -> dict or H
 
         # 未找到参数
         if use_default is None:
-            logger.warning('Missing required argument "%s": (%s)' % (arg_name, _get_parameter_str(args)))
-            return HttpResponseBadRequest('Argument "%s" is required' % arg_name)
+            msg = '%s\n\tMissing required argument "%s":\n\t\t%s' % (
+                get_func_info(func),
+                arg_name,
+                _get_parameter_str(args)
+            )
+            logger.warning(msg)
+            return HttpResponseBadRequest(msg)
 
         # 使用默认值
         if use_default is True:
