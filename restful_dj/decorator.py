@@ -117,7 +117,7 @@ def _process_json_params(request):
 
     try:
         if isinstance(body, (bytes, str)):
-            request.B = DotDict.parse(json.loads(body), False)
+            request.B = DotDict.parse(json.loads(str(body)), False)
         elif isinstance(body, (dict, list)):
             request.B = DotDict.parse(body, False)
     except Exception as e:
