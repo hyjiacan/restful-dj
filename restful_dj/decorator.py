@@ -116,8 +116,10 @@ def _process_json_params(request):
         return
 
     try:
-        if isinstance(body, (bytes, str)):
-            request.B = DotDict.parse(json.loads(str(body)), False)
+        if isinstance(body, str):
+            request.B = DotDict.parse(json.loads(body), False)
+        elif isinstance(body, bytes):
+            request.B = DotDict.parse(json.loads(body.decode()), False)
         elif isinstance(body, (dict, list)):
             request.B = DotDict.parse(body, False)
     except Exception as e:
