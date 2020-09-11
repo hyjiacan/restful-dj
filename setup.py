@@ -1,6 +1,6 @@
 import setuptools
 
-VERSION = '1.0.1'
+VERSION = '1.0.2'
 
 with open("README.md", "r", encoding="utf8") as fh:
     long_description = fh.read()
@@ -22,5 +22,5 @@ setuptools.setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    python_requires='>=3.6',
+    python_requires='>=3.5',
 )

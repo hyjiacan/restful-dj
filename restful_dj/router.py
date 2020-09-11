@@ -45,6 +45,7 @@ def set_before_dispatch_handler(handler):
     _BEFORE_DISPATCH_HANDLER = handler
 
 
+# noinspection PyUnusedLocal
 def redirect(request, entry, name=''):
     """
     当请求的URL使用了 / 结尾时，重定向到不使用 / 结尾的地址
@@ -73,7 +74,6 @@ def render_list(request):
             module = route['module']
 
             p = route['path']
-            entry = ''
             suffix = ''
             temp = p.split('/')
             entry = temp[0]

@@ -62,7 +62,7 @@ class ArgumentSpecification:
         name = name if self.alias is None else '%s/%s' % (name, self.alias)
 
         if self.has_default:
-            default_value = "'%s'" % (self.default) if isinstance(self.default, str) else self.default
+            default_value = "'%s'" % self.default if isinstance(self.default, str) else self.default
             return '%s: %s=%s' % (name, arg_type, default_value)
 
         return '%s: %s' % (name, arg_type)
@@ -70,7 +70,9 @@ class ArgumentSpecification:
 
 def get_func_docs(func):
     docs = {}
-    doc_str: str = func.__doc__
+
+    # :type str
+    doc_str = func.__doc__
     if doc_str is None:
         return docs
 
@@ -79,7 +81,7 @@ def get_func_docs(func):
     for row in temp:
         if not row:
             continue
-        match = re.match('\s*:param\s+(?P<name>[\S]+):(?P<comment>.*)$', row)
+        match = re.match(r'\s*:param\s+(?P<name>[\S]+):(?P<comment>.*)$', row)
         if not match:
             continue
         docs[match.group('name')] = match.group('comment')

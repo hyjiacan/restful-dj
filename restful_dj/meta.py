@@ -1,4 +1,4 @@
-from types import FunctionType
+from types import MethodType
 
 
 class RouteMeta:
@@ -7,7 +7,7 @@ class RouteMeta:
     """
 
     def __init__(self,
-                 handler: FunctionType,
+                 handler: MethodType,
                  func_args,
                  route_id=None,
                  module=None,
@@ -39,7 +39,7 @@ class RouteMeta:
         self._kwargs = {} if kwargs is None else kwargs
 
     @property
-    def handler(self) -> FunctionType:
+    def handler(self) -> MethodType:
         """
         路由处理函数对象
         :return:

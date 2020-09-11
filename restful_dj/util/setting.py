@@ -14,12 +14,15 @@ if not hasattr(settings, APP_CONFIG_KEY):
     logger.error('config item not found in settings.py: %s' % APP_CONFIG_KEY)
 
 # 已注册APP集合
-CONFIG_ROOT: dict = getattr(settings, APP_CONFIG_KEY)
+
+# :type dict
+CONFIG_ROOT = getattr(settings, APP_CONFIG_KEY)
 
 if APP_CONFIG_ROUTE not in CONFIG_ROOT:
     logger.error('config item not found in settings.py!%s: %s' % (APP_CONFIG_KEY, APP_CONFIG_ROUTE))
 
-CONFIG_ROUTE: list = []
+# :type list
+CONFIG_ROUTE = []
 for _ in CONFIG_ROOT[APP_CONFIG_ROUTE].keys():
     CONFIG_ROUTE.append(_)
 CONFIG_ROUTE = sorted(CONFIG_ROUTE, key=lambda i: len(i), reverse=True)
