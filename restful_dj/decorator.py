@@ -28,70 +28,94 @@ def route(module=None, name=None, permission=True, ajax=True, referer=None, **kw
 
     def invoke_route(func):
         @wraps(func)
-        def caller(request: HttpRequest, args: OrderedDict):
-            func_name = func.__name__
+        def caller(*args):
+            # 参数长度不为 2 时，认为是用户调用
+            if len(args) != 2:
+                return func(*args)
 
-            mgr = MiddlewareManager(
-                request,
-                RouteMeta(
-                    func,
-                    args,
-                    route_id='%s_%s' % (func.__module__.replace('_', '__').replace('.', '_'), func_name),
-                    module=module,
-                    name=name,
-                    permission=permission,
-                    ajax=ajax,
-                    referer=referer,
-                    kwargs=kwargs,
-                )
+            # Http 请求对象
+            # :type HttpRequest
+            request = args[0]
+            # 函数声明时定义的参数列表
+            # :type OrderedDict
+            func_args = args[1]
+
+            # 如果传入的参数第一个不是 request，第二个不是 OrderedDict，
+            # 那么就认为是用户调用，而不是路由调用
+            # 此时直接将原参数传给 func 进行调用
+            if not isinstance(request, HttpRequest) or not isinstance(func_args, OrderedDict):
+                return func(*args)
+
+            meta = RouteMeta(
+                func,
+                func_args,
+                route_id='%s_%s' % (func.__module__.replace('_', '__').replace('.', '_'), func.__name__),
+                module=module,
+                name=name,
+                permission=permission,
+                ajax=ajax,
+                referer=referer,
+                kwargs=kwargs,
             )
 
-            # 调用中间件，以处理请求
-            result = mgr.begin()
-
-            # 返回了 HttpResponse，直接返回此对象
-            if isinstance(result, HttpResponse):
-                return mgr.end(result)
-
-            # 返回了 False，表示未授权访问
-            if result is False:
-                return mgr.end(HttpResponseUnauthorized())
-
-            # 处理请求中的json参数
-            # 处理后可能会在 request 上添加一个 json 的项，此项存放着json格式的 body 内容
-            # noinspection PyTypeChecker
-            _process_json_params(request)
-
-            result = mgr.before_invoke()
-
-            # 返回了 False，表示未授权访问
-            if result is False:
-                return mgr.end(HttpResponseUnauthorized())
-
-            # 返回了 HttpResponse ， 直接返回此对象
-            if isinstance(result, HttpResponse):
-                return mgr.end(result)
-
-            # 调用路由处理函数
-            arg_len = len(args)
-            if arg_len == 0:
-                return mgr.end(_wrap_http_response(mgr, func()))
-
-            # 有参数，自动从 queryString, POST 或 json 中获取
-            # 匹配参数
-
-            actual_args = _get_actual_args(request, func, args)
-
-            if isinstance(actual_args, HttpResponse):
-                return mgr.end(actual_args)
-
-            result = func(**actual_args)
-
-            return mgr.end(_wrap_http_response(mgr, result))
+            return _invoke_with_route(request, meta)
 
         return caller
 
     return invoke_route
+
+
+def _invoke_with_route(request: HttpRequest, meta: RouteMeta):
+    mgr = MiddlewareManager(
+        request,
+        meta
+    )
+
+    func_args = meta.func_args
+    func = meta.handler
+
+    # 调用中间件，以处理请求
+    result = mgr.begin()
+
+    # 返回了 HttpResponse，直接返回此对象
+    if isinstance(result, HttpResponse):
+        return mgr.end(result)
+
+    # 返回了 False，表示未授权访问
+    if result is False:
+        return mgr.end(HttpResponseUnauthorized())
+
+    # 处理请求中的json参数
+    # 处理后可能会在 request 上添加一个 json 的项，此项存放着json格式的 body 内容
+    # noinspection PyTypeChecker
+    _process_json_params(request)
+
+    result = mgr.before_invoke()
+
+    # 返回了 False，表示未授权访问
+    if result is False:
+        return mgr.end(HttpResponseUnauthorized())
+
+    # 返回了 HttpResponse ， 直接返回此对象
+    if isinstance(result, HttpResponse):
+        return mgr.end(result)
+
+    # 调用路由处理函数
+    arg_len = len(func_args)
+    if arg_len == 0:
+        return mgr.end(_wrap_http_response(mgr, func()))
+
+    # 有参数，自动从 queryString, POST 或 json 中获取
+    # 匹配参数
+
+    actual_args = _get_actual_args(request, func, func_args)
+
+    if isinstance(actual_args, HttpResponse):
+        return mgr.end(actual_args)
+
+    result = func(**actual_args)
+
+    return mgr.end(_wrap_http_response(mgr, result))
 
 
 def _process_json_params(request):
