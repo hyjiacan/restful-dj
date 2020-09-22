@@ -424,7 +424,9 @@ routes = collector.collect()
 - method # 路由的请求方法
 - path # 路由的请求路径
 
-## 发布
+## 发布 
+
+`since 1.0.3`
 
 **发布** 指将 Django 项目发布到服务器上运行(线上环境)。
 
