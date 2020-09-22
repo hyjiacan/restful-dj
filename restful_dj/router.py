@@ -1,5 +1,6 @@
 import inspect
 import os
+from types import MethodType
 
 from django import shortcuts
 from django.conf import settings
@@ -24,15 +25,33 @@ PRODUCTION_ROUTES = {}
 MODULES_CACHE = None
 
 
-def _load_production_routes():
-    for _route in collector.collect():
-        func = getattr(load_module(_route['pkg']), _route['handler'])
-        args = utils.get_func_args(func)
-        rid = '%s#%s' % (_route['path'], _route['method'])
-        PRODUCTION_ROUTES[rid] = {
-            'func': func,
-            'args': args
-        }
+def register_routes(routes: list):
+    """
+    手动注册路由列表
+    :param routes: 其每一项都应该是一个 list, 元素依次为 method: str, path: str, handler: MethodType
+    :return:
+    """
+    for _route in routes:
+        register(*_route)
+
+
+def register(method: str, path: str, handler: MethodType):
+    """
+    手动注册路由
+    :param path:
+    :param method:
+    :param handler:
+    :return:
+    """
+    rid = '%s#%s' % (path, method.lower())
+    if rid in PRODUCTION_ROUTES:
+        logger.warning('[restful-dj] %s %s exists' % (method, path))
+
+    args = utils.get_func_args(handler)
+    PRODUCTION_ROUTES[rid] = {
+        'func': handler,
+        'args': args
+    }
 
 
 def set_before_dispatch_handler(handler):
@@ -113,8 +132,6 @@ def dispatch(request, entry, name=''):
         entry, name = _BEFORE_DISPATCH_HANDLER(request, entry, name)
 
     if not settings.DEBUG:
-        if len(PRODUCTION_ROUTES) == 0:
-            _load_production_routes()
         return _route_for_production(request, entry, name)
 
     router = Router(request, request.method, entry, name)

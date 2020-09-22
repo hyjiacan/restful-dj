@@ -3,7 +3,7 @@ from django.urls import path
 
 from .decorator import route
 from .meta import RouteMeta
-from .router import set_before_dispatch_handler
+from .router import set_before_dispatch_handler, register_routes
 from .util import collector
 from .util.dot_dict import DotDict
 from .util.logger import set_logger
@@ -28,6 +28,7 @@ __all__ = [
     'RouteMeta',
     'set_before_dispatch_handler',
     'set_logger',
+    'register_routes',
     'urls'
 ]
 

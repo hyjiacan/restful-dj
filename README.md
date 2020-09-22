@@ -409,7 +409,52 @@ routes = collector.collect()
 
 > `routes` 是一个可以直接迭代的路由数组
 
-在发布产品到线上时，通过此方法将自动产生 Django 的路由配置文件，以提高线上性能。
+其每一个路由项的结构如下:
+
+- module
+- name
+- permission
+- ajax
+- referer
+- kwargs
+- id
+- pkg # 路由所在包名称
+- file # 路由所在文件的完整路径
+- handler # 路由请求的处理函数
+- method # 路由的请求方法
+- path # 路由的请求路径
+
+## 发布
+
+**发布** 指将 Django 项目发布到服务器上运行(线上环境)。
+
+`restful-dj` 导出了一个工具函数 `persist`，用于将路由收集起来，并持久化，其用法如下：
+
+```python
+import os
+from django.conf import settings
+from restful_dj.util import utils
+
+restful_map = os.path.join(settings.BASE_DIR, 'path/to/restful_map.py')
+# restful_map 参数是可选的，当不传时，调用会返回生成的代码内容
+# encoding 参数是可选的，默认值为 utf-8。
+utils.persist(restful_map, encoding='utf-8')
+```
+
+最终生成的路由代码会写入文件 _restful_map.py_，此文件会暴露一个函数 `register`，用于执行路由的注册。
+一般来说，应该在系统启动时调用此函数:
+
+```python
+import restful_dj
+from path.to import restful_map
+restful_dj.register_routes(restful_map.routes)
+```
+
+综上，**发布以及线上运行流程为**：
+
+1. 发布时调用 `utils.persist` 生成路由映射文件
+2. 程序启动时，判断 `settings.DEBUG=False`，执行 `from path.to import restful_map` 
+    并调用 `restful_dj.register_routes(restful_map.routes)` 注册路由。
 
 ## 待办事项
 
