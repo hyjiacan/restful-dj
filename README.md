@@ -469,4 +469,8 @@ restful_dj.register_routes(restful_map.routes)
 
 ## 更新记录
 
+### 1.0.3
 
+- 优化 线上路由加载方式，提升启动和响应速度
+- 优化 路由处理函数被用户直接调用的支持
+- 优化 将兼容性调整为 Python 3.5
