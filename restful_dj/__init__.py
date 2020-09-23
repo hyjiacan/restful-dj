@@ -1,10 +1,12 @@
 from django.conf import settings
 from django.urls import path
 
+from . import router
 from .decorator import route
 from .meta import RouteMeta
-from .router import set_before_dispatch_handler, register_routes
-from .util import collector
+from .middleware import register_middlewares
+from .router import set_before_dispatch_handler, register_routes, map_routes
+from .util.collector import collect, persist, register_globals
 from .util.dot_dict import DotDict
 from .util.logger import set_logger
 
@@ -21,14 +23,17 @@ urls = (
 )
 
 __all__ = [
-    'collector',
+    'collect',
+    'persist',
     'DotDict',
     'route',
     'RouteMeta',
-    'RouteMeta',
     'set_before_dispatch_handler',
     'set_logger',
+    'map_routes',
+    'register_globals',
     'register_routes',
+    'register_middlewares',
     'urls'
 ]
 

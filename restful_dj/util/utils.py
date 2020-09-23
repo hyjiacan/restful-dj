@@ -4,7 +4,7 @@ from collections import OrderedDict
 
 from django.http import HttpRequest
 
-from . import logger, collector
+from . import logger
 
 
 def _get_parameter_alias(match):
@@ -178,58 +178,3 @@ def get_func_info(func):
         line,
         func.__name__
     )
-
-
-# 生成：注册路由的代码 -- 模板
-# 注意生成的代码中的缩进，使用的是空格
-_REGISTER_STMT = "    # {module}-{name}\n    ['{method}', '{path}', {handler}]"
-_CODE_TPL = """# -*- coding={encoding} -*-
-
-# IMPORT ROUTES BEGIN
-{imports}
-# IMPORT ROUTES END
-
-
-# REGISTER ROUTES BEGIN
-routes = [
-{routes}
-]
-# REGISTER ROUTES END
-"""
-
-
-def persist(filename: str = '', encoding='utf8'):
-    """
-    将路由持久化
-    :param filename:
-    :param encoding:
-    :param url_prefix:
-    :return: 持久化的 python 代码
-    :rtype: str or None
-    """
-    imports = []
-    routes = []
-
-    print('[restful-dj] Generating restful map file with encoding %s' % encoding)
-    for route in collector.collect():
-        # imports.append('from %s import %s as %s' % (route['pkg'], route['handler'], route['id']))
-        imports.append('from %s import %s as %s' % (route['pkg'], route['handler'], route['id']))
-        routes.append(_REGISTER_STMT.format(
-            module=route['module'],
-            name=route['name'],
-            method=route['method'].upper(),
-            path=route['path'],
-            handler=route['id']
-        ))
-
-    content = _CODE_TPL.format(encoding=encoding, imports='\n'.join(imports), routes=',\n'.join(routes))
-
-    print('[restful-dj] Generate restful map file complete')
-    if not filename:
-        return content
-
-    print('[restful-dj] Persisting into file %s' % filename)
-    with open(filename, mode='wt', encoding=encoding) as fp:
-        fp.write(content)
-        fp.close()
-    print('[restful-dj] Persist into file complete')

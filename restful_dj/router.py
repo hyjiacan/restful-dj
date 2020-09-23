@@ -24,6 +24,19 @@ PRODUCTION_ROUTES = {}
 # 开发模式的模块缓存，用于API列表
 MODULES_CACHE = None
 
+# 路由映射表，其键为请求的路径，其值为映射的目录
+ROUTES_MAP = {}
+
+
+def map_routes(routes_map: dict):
+    """
+    注册路由映射表
+    :param routes_map:
+    :return:
+    """
+    for path in routes_map:
+        ROUTES_MAP[path] = routes_map[path]
+
 
 def register_routes(routes: list):
     """
@@ -127,10 +140,6 @@ def dispatch(request, entry, name=''):
     :param name='' 指定的函数名称
     :return:
     """
-    # 将设置的初始化写在这里，确保程序已经启动完成，所有配置项就位
-    from .util import setting
-    setting.init()
-
     if _BEFORE_DISPATCH_HANDLER is not None:
         # noinspection PyCallingNonCallable
         entry, name = _BEFORE_DISPATCH_HANDLER(request, entry, name)
@@ -298,12 +307,11 @@ class Router:
 
     @staticmethod
     def get_route_map(route_path):
-        from restful_dj.util.setting import CONFIG_ROUTE, CONFIG_ROOT, APP_CONFIG_ROUTE
         # 命中
         hit_route = None
-        for root_path in CONFIG_ROUTE:
+        for root_path in ROUTES_MAP:
             if route_path.startswith(root_path):
-                hit_route = root_path, CONFIG_ROOT[APP_CONFIG_ROUTE][root_path]
+                hit_route = root_path, ROUTES_MAP[root_path]
                 break
 
         if hit_route is None:

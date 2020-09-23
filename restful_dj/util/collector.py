@@ -8,9 +8,22 @@ from os import path
 
 from django.conf import settings
 
+# 全局类列表
+GLOBAL_CLASSES = []
+
+
+def register_globals(*global_classes):
+    """
+    注册全局类型
+    :type global_classes: class
+    :param global_classes:
+    :return:
+    """
+    for cls in global_classes:
+        GLOBAL_CLASSES.append(cls)
+
 
 def _get_env(*args):
-    from .setting import GLOBAL_CLASSES
     env = {}
 
     # 加载全局配置
@@ -25,16 +38,11 @@ def _get_env(*args):
 
 
 def _get_route_map():
-    from restful_dj.util.setting import APP_CONFIG_ROUTE, CONFIG_ROOT
-    if APP_CONFIG_ROUTE not in CONFIG_ROOT:
-        raise Exception('restful-dj: route map setting not found')
+    from ..router import ROUTES_MAP
+    if not ROUTES_MAP:
+        raise Exception('[restful-dj] Routes map is empty, did you forgot to call `restful_dj.map_routes(*routes_map)`')
 
-    routes = CONFIG_ROOT[APP_CONFIG_ROUTE]
-
-    if len(routes) == 0:
-        raise Exception('restful-dj: route map setting is empty')
-
-    return routes.items()
+    return ROUTES_MAP.items()
 
 
 def collect(*environments):
@@ -178,3 +186,57 @@ def resolve_func(func: str):
     """
     method, lodash, name = re.match(r'([a-z]+)(_(.+))?', func).groups()
     return method, name
+
+
+# 生成：注册路由的代码 -- 模板
+# 注意生成的代码中的缩进，使用的是空格
+_REGISTER_STMT = "    # {module}-{name}\n    ['{method}', '{path}', {handler}]"
+_CODE_TPL = """# -*- coding={encoding} -*-
+
+# IMPORT ROUTES BEGIN
+{imports}
+# IMPORT ROUTES END
+
+
+# REGISTER ROUTES BEGIN
+routes = [
+{routes}
+]
+# REGISTER ROUTES END
+"""
+
+
+def persist(filename: str = '', encoding='utf8'):
+    """
+    将路由持久化
+    :param filename:
+    :param encoding:
+    :return: 持久化的 python 代码
+    :rtype: str or None
+    """
+    imports = []
+    routes = []
+
+    print('[restful-dj] Generating restful map file with encoding %s' % encoding)
+    for route in collect():
+        # imports.append('from %s import %s as %s' % (route['pkg'], route['handler'], route['id']))
+        imports.append('from %s import %s as %s' % (route['pkg'], route['handler'], route['id']))
+        routes.append(_REGISTER_STMT.format(
+            module=route['module'],
+            name=route['name'],
+            method=route['method'].upper(),
+            path=route['path'],
+            handler=route['id']
+        ))
+
+    content = _CODE_TPL.format(encoding=encoding, imports='\n'.join(imports), routes=',\n'.join(routes))
+
+    print('[restful-dj] Generate restful map file complete')
+    if not filename:
+        return content
+
+    print('[restful-dj] Persisting into file %s' % filename)
+    with open(filename, mode='wt', encoding=encoding) as fp:
+        fp.write(content)
+        fp.close()
+    print('[restful-dj] Persist into file complete')

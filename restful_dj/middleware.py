@@ -1,49 +1,19 @@
-import os
-
-from django.conf import settings
 from django.http import HttpResponse, HttpRequest
 
 from .meta import RouteMeta
-from .util import logger
-from .util.utils import load_module
 
 # 注册的路由中间件列表
 MIDDLEWARE_INSTANCE_LIST = []
 
 
-def add_middleware(middleware_name):
+def register_middlewares(*middlewares):
     """
-    添加路由中间件
-    :param middleware_name:中间件的模块完全限定名称
+    注册中间件，注册的中间件将按顺序执行
+    :param middlewares:
     :return:
     """
-
-    temp = middleware_name.split('.')
-
-    class_name = temp.pop()
-
-    module_name = '.'.join(temp)
-
-    module_path = os.path.join(settings.BASE_DIR, module_name.replace('.', os.path.sep))
-
-    if not os.path.exists(module_path + '.py'):
-        # 是目录 (package)，尝试使用默认的
-        if os.path.exists(module_path):
-            module_path = os.path.join(module_path, '__init__.py')
-            module_name += '.__init__'
-
-        if not os.path.exists(module_path):
-            logger.error('Middleware for restful-dj is not found: %s' % middleware_name)
-            return
-
-    module = load_module(module_name)
-
-    middleware_cls = getattr(module, class_name)
-
-    if middleware_cls not in MIDDLEWARE_INSTANCE_LIST:
+    for middleware_cls in middlewares:
         MIDDLEWARE_INSTANCE_LIST.append(middleware_cls())
-
-    return True
 
 
 # noinspection PyMethodMayBeStatic,PyUnusedLocal
