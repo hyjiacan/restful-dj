@@ -10,37 +10,53 @@ APP_CONFIG_MIDDLEWARE = 'middleware'
 APP_CONFIG_LOGGER = 'logger'
 APP_CONFIG_GLOBAL_CLASS = 'global_class'
 
-if not hasattr(settings, APP_CONFIG_KEY):
-    logger.error('config item not found in settings.py: %s' % APP_CONFIG_KEY)
-
 # 已注册APP集合
-
 # :type dict
-CONFIG_ROOT = getattr(settings, APP_CONFIG_KEY)
-
-if APP_CONFIG_ROUTE not in CONFIG_ROOT:
-    logger.error('config item not found in settings.py!%s: %s' % (APP_CONFIG_KEY, APP_CONFIG_ROUTE))
-
+CONFIG_ROOT = {}
 # :type list
 CONFIG_ROUTE = []
-for _ in CONFIG_ROOT[APP_CONFIG_ROUTE].keys():
-    CONFIG_ROUTE.append(_)
-CONFIG_ROUTE = sorted(CONFIG_ROUTE, key=lambda i: len(i), reverse=True)
-
-if APP_CONFIG_MIDDLEWARE in CONFIG_ROOT:
-    for middleware in CONFIG_ROOT[APP_CONFIG_MIDDLEWARE]:
-        add_middleware(middleware)
-
-if APP_CONFIG_LOGGER in CONFIG_ROOT:
-    custom_logger_name = CONFIG_ROOT[APP_CONFIG_MIDDLEWARE]
-    logger.set_logger(load_module(custom_logger_name))
-
 # 全局类列表
 GLOBAL_CLASSES = []
-if APP_CONFIG_GLOBAL_CLASS in CONFIG_ROOT:
-    for cls_path in CONFIG_ROOT[APP_CONFIG_GLOBAL_CLASS]:
-        temp = cls_path.split('.')
-        pkg = '.'.join(temp[0:-1])
-        cls_name = temp[-1]
 
-        GLOBAL_CLASSES.append(getattr(load_module(pkg), cls_name))
+_initialized = False
+
+
+def init():
+    global _initialized
+    if _initialized:
+        return
+
+    if not hasattr(settings, APP_CONFIG_KEY):
+        logger.error('config item not found in settings.py: %s' % APP_CONFIG_KEY)
+        return
+
+    global CONFIG_ROOT
+    CONFIG_ROOT = getattr(settings, APP_CONFIG_KEY)
+
+    if APP_CONFIG_ROUTE not in CONFIG_ROOT:
+        logger.error('config item not found in settings.py!%s: %s' % (APP_CONFIG_KEY, APP_CONFIG_ROUTE))
+        return
+
+    global CONFIG_ROUTE
+    for _ in CONFIG_ROOT[APP_CONFIG_ROUTE].keys():
+        CONFIG_ROUTE.append(_)
+    CONFIG_ROUTE = sorted(CONFIG_ROUTE, key=lambda i: len(i), reverse=True)
+
+    global GLOBAL_CLASSES
+    if APP_CONFIG_GLOBAL_CLASS in CONFIG_ROOT:
+        for cls_path in CONFIG_ROOT[APP_CONFIG_GLOBAL_CLASS]:
+            temp = cls_path.split('.')
+            pkg = '.'.join(temp[0:-1])
+            cls_name = temp[-1]
+
+            GLOBAL_CLASSES.append(getattr(load_module(pkg), cls_name))
+
+    if APP_CONFIG_MIDDLEWARE in CONFIG_ROOT:
+        for middleware in CONFIG_ROOT[APP_CONFIG_MIDDLEWARE]:
+            add_middleware(middleware)
+
+    if APP_CONFIG_LOGGER in CONFIG_ROOT:
+        custom_logger_name = CONFIG_ROOT[APP_CONFIG_MIDDLEWARE]
+        logger.set_logger(load_module(custom_logger_name))
+
+    _initialized = True

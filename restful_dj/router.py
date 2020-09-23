@@ -127,6 +127,10 @@ def dispatch(request, entry, name=''):
     :param name='' 指定的函数名称
     :return:
     """
+    # 将设置的初始化写在这里，确保程序已经启动完成，所有配置项就位
+    from .util import setting
+    setting.init()
+
     if _BEFORE_DISPATCH_HANDLER is not None:
         # noinspection PyCallingNonCallable
         entry, name = _BEFORE_DISPATCH_HANDLER(request, entry, name)
