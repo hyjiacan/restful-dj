@@ -10,7 +10,7 @@ from .util.collector import collect, persist, register_globals
 from .util.dot_dict import DotDict
 from .util.logger import set_logger
 
-urls = (
+dispatch = (
     [
         path('', router.render_list),
         path('<str:entry>', router.dispatch),
@@ -34,7 +34,7 @@ __all__ = [
     'register_globals',
     'register_routes',
     'register_middlewares',
-    'urls'
+    'dispatch'
 ]
 
 if settings.DEBUG:
