@@ -7,7 +7,6 @@ from .meta import RouteMeta
 from .middleware import register_middlewares
 from .router import set_before_dispatch_handler, register_routes, map_routes
 from .util.collector import collect, persist, register_globals
-from .util.dot_dict import DotDict
 from .util.logger import set_logger
 
 dispatch = (
@@ -25,7 +24,6 @@ dispatch = (
 __all__ = [
     'collect',
     'persist',
-    'DotDict',
     'route',
     'RouteMeta',
     'set_before_dispatch_handler',

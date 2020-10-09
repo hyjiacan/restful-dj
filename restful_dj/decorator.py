@@ -7,7 +7,6 @@ from django.http import HttpResponse, JsonResponse, HttpResponseBadRequest, Http
 from .meta import RouteMeta
 from .middleware import MiddlewareManager
 from .util import logger
-from .util.dot_dict import DotDict
 from .util.utils import ArgumentSpecification
 from .util.utils import get_func_info
 
@@ -123,13 +122,13 @@ def _process_json_params(request):
     参数处理
     :return:
     """
-    request.B = DotDict()
-    request.G = DotDict()
-    request.P = DotDict()
+    request.B = {}
+    request.G = {}
+    request.P = {}
 
     if request.content_type != 'application/json':
-        request.G = DotDict.parse(request.GET.dict(), False)
-        request.P = DotDict.parse(request.POST.dict(), False)
+        request.G = request.GET.dict()
+        request.P = request.POST.dict()
         return
 
     # 如果请求是json类型，就先处理一下
@@ -141,11 +140,11 @@ def _process_json_params(request):
 
     try:
         if isinstance(body, str):
-            request.B = DotDict.parse(json.loads(body), False)
+            request.B = json.loads(body)
         elif isinstance(body, bytes):
-            request.B = DotDict.parse(json.loads(body.decode()), False)
+            request.B = json.loads(body.decode())
         elif isinstance(body, (dict, list)):
-            request.B = DotDict.parse(body, False)
+            request.B = body
     except Exception as e:
         logger.warning('Deserialize request body fail: %s' % str(e))
 
@@ -279,8 +278,6 @@ def _get_actual_args(request: HttpRequest, func, args: OrderedDict) -> dict or H
                 # noinspection PyBroadException
                 try:
                     arg_value = json.loads(arg_value)
-                    if isinstance(arg_value, (list, dict)):
-                        arg_value = DotDict.parse(arg_value, False)
                 except Exception:
                     # 此处的异常直接忽略即可
                     logger.warning('Value for "%s!%s" may be incorrect: %s' % (func.__name__, arg_name, arg_value))
@@ -339,7 +336,7 @@ def _wrap_http_response(mgr, data):
     if isinstance(data, bool):
         return HttpResponse('true' if bool else 'false')
 
-    if isinstance(data, (dict, list, set, tuple, DotDict)):
+    if isinstance(data, (dict, list, set, tuple)):
         return JsonResponse(data, safe=False)
 
     if isinstance(data, str):

@@ -10,9 +10,9 @@
 
 ## 安装
 
-Gitee: https://gitee.com/hyjiacan/restful-dj
-Github: https://github.com/hyjiacan/restful-dj
-PyPI: https://pypi.org/project/restful-dj/ 
+- Gitee: https://gitee.com/hyjiacan/restful-dj
+- Github: https://github.com/hyjiacan/restful-dj
+- PyPI: https://pypi.org/project/restful-dj/ 
 
 ```shell script
 pip install restful-dj
@@ -33,7 +33,7 @@ def test(req):
     pass
 ```
 
-装饰器 `@route` 用于标记路由处理函数。`RouteTypes` 是自定义的路由数据。
+装饰器 [@route](#装饰器) 用于标记路由处理函数。`RouteTypes` 是自定义的路由数据。
 
 `restful-dj` 包含以下几个部分：
 
@@ -48,12 +48,13 @@ def test(req):
 
 `restful-dj` 的使用流程如下：
 
-1. 注册 url 前缀
-2. 注册路由映射
-3. 注册中间件
-4. 编写路由处理函数
+1. [注册请求路径前缀](#注册请求路径前缀)
+2. [注册路由映射](#注册路由映射)
+3. [注册中间件](#注册中间件)
+4. [编写路由处理函数](#编写路由处理函数)
+5. [发布](#发布)
 
-### 注册 url 前缀
+### 注册请求路径前缀
 
 在项目的根 *urls.py* 文件中，使用以下配置
 
@@ -229,30 +230,18 @@ def route(module=None, name=None, permission=True, ajax=True, referer=None, **kw
 
 > 这些参数都会被传递给中间件的各个函数的参数 `meta`。详细见 [RouteMeta](#RouteMeta)
 
-同时，此装饰器会自动尝试将 `request.body` 处理成 JSON 格式(仅在 `content-type=application/json` 时)，并且添加到 `request.B` 属性上。
+同时，此装饰器会自动尝试将 `request.body`，`request.GET` 和 `request.POST`
+处理成 JSON 格式(仅在 `content-type=application/json` 时)，
+并且分别添加到 `request.B`，`request.G` 和 `request.P` 属性上。
 
-另外，此装饰器会自动将 `request.GET` 和 `request.POST` 处理成为可以通过点号直接访问的对象，分别添加到 `request.G` 和 `request.P` 上。例：
-
-```python
-# 原始数据
-request = {...}
-request.GET = {
-    'param1': 1,
-    'param2': 2
-}
-# 此时，只能这样访问
-request.GET['param1']
-
-# 而在经过装饰器的处理后，可以这样访问
-request.G.param1
-```
-
-但是，一般情况下，使用路由处理函数就能完全操作请求参数的，
-所以需要在代码中尽量减少使用 `B/P/G`，以避免代码的不明确性。
+注意：一般情况下，使用路由处理函数就能完全操作请求参数，应该尽量减少使用 `B/P/G`，以避免代码的不明确性。
 
 ## 发布 
 
 **发布** 指将 Django 项目发布到服务器上运行(线上环境)。
+
+一般来说，发布时只需要调用 [生成路由映射文件](#生成路由映射文件) 的接口就可以了，
+路由收集在其中会自动调用。
 
 ### 路由收集
 
@@ -296,6 +285,9 @@ restful_map = os.path.join(settings.BASE_DIR, 'path/to/restful_map.py')
 # encoding 参数是可选的，默认值为 utf-8。
 restful_dj.persist(restful_map, encoding='utf-8')
 ```
+
+> 此处还需要调用路由的映射注册，以及全局类型注册等。
+> 因此，最佳方法就是，将这些注册写一个单独的 python 文件，在启动和发布时均调用即可。
 
 最终生成的路由代码会写入文件 _restful_map.py_，此文件会暴露一个数据项 `routes`，其中是所有的路由映射。
 一般来说，应该在系统启动时 (在主应用的 `urls.py` 文件中) 调用此函数:
