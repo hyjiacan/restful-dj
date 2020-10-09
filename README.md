@@ -521,11 +521,14 @@ class RouteMeta:
 
 移除或注释掉 *settings.py* 文件中的中间件 `'django.middleware.csrf.CsrfViewMiddleware'`
 
+> restful 请求时，前端页面并没有 Django 生成的 form 以及对应的 csrf 校验字段，此配置实际上对 restful 是没有意义的。 
+
 ## 更新记录
 
 ### 2.0.0
 
 - 新的 `restful-dj` 启动方式
+- 移除 `DotDict` 支持
 
 ### 1.0.3
 
