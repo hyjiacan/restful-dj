@@ -11,16 +11,13 @@ from .util.utils import ArgumentSpecification
 from .util.utils import get_func_info
 
 
-def route(module=None, name=None, permission=True, ajax=True, referer=None, **kwargs):
+def route(module=None, name=None, **kwargs):
     """
     用于控制路由的访问权限，路由均需要添加此装饰器，若未添加，则不可访问
     :param module: str 路由所属模块，一般在查询权限时会用到
     :param name: str 路由名称，一般在查询权限时会用到
-    :param permission: bool 访问此地址是否需要检查用户权限,由数据库实际值控制,在这里只起到做入库作用
-    :param ajax: bool 是否仅允许ajax请求,由数据库实际值控制,在这里只起到做入库作用
-    :param referer: list|str 允许的来源页,由数据库实际值控制,在这里只起到做入库作用
     用法：
-    @route('用户管理', '编辑用户', permission=True)
+    @route('用户管理', '编辑用户')
     def get(req):
         pass
     """
@@ -51,9 +48,6 @@ def route(module=None, name=None, permission=True, ajax=True, referer=None, **kw
                 route_id='%s_%s' % (func.__module__.replace('_', '__').replace('.', '_'), func.__name__),
                 module=module,
                 name=name,
-                permission=permission,
-                ajax=ajax,
-                referer=referer,
                 kwargs=kwargs,
             )
 

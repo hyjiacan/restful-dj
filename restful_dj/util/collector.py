@@ -156,14 +156,11 @@ def resolve_file(route_define, fullname, http_prefix, pkg_prefix, route_env: dic
         yield define
 
 
-def fake_route(module=None, name=None, permission=True, ajax=True, referer=None, **kwargs):
+def fake_route(module=None, name=None, **kwargs):
     """
     此函数用于帮助读取装饰器的参数
     :param module:
     :param name:
-    :param permission:
-    :param ajax:
-    :param referer:
     :param kwargs:
     :return:
     """
@@ -171,9 +168,6 @@ def fake_route(module=None, name=None, permission=True, ajax=True, referer=None,
     return {
         'module': module,
         'name': name,
-        'permission': permission,
-        'ajax': ajax,
-        'referer': referer,
         'kwargs': kwargs
     }
 
@@ -239,4 +233,4 @@ def persist(filename: str = '', encoding='utf8'):
     with open(filename, mode='wt', encoding=encoding) as fp:
         fp.write(content)
         fp.close()
-    print('[restful-dj] Persist into file complete')
+    print('[restful-dj] Routes persisted')

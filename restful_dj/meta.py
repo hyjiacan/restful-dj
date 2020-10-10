@@ -12,9 +12,6 @@ class RouteMeta:
                  route_id=None,
                  module=None,
                  name=None,
-                 permission=True,
-                 ajax=True,
-                 referer=None,
                  kwargs=None):
         """
 
@@ -23,9 +20,6 @@ class RouteMeta:
         :param route_id: 路由ID，此ID由路由相关信息组合而成
         :param module: 装饰器上指定的 module 值
         :param name: 装饰器上指定的 name 值
-        :param permission: 装饰器上指定的 name 值
-        :param ajax: 装饰器上指定的 name 值
-        :param referer: 装饰器上指定的 name 值
         :param kwargs: 装饰器上指定的其它参数
         """
         self._handler = handler
@@ -33,9 +27,6 @@ class RouteMeta:
         self._id = route_id
         self._module = module
         self._name = name
-        self._permission = permission
-        self._ajax = ajax
-        self._referer = referer
         self._kwargs = {} if kwargs is None else kwargs
 
     @property
@@ -80,30 +71,6 @@ class RouteMeta:
         return self._name
 
     @property
-    def permission(self) -> bool:
-        """
-        装饰器上指定的 permission 值
-        :return:
-        """
-        return self._permission
-
-    @property
-    def ajax(self) -> bool:
-        """
-        装饰器上指定的 ajax 值
-        :return:
-        """
-        return self._ajax
-
-    @property
-    def referer(self) -> str:
-        """
-        装饰器上指定的 referer 值
-        :return:
-        """
-        return self._referer
-
-    @property
     def kwargs(self) -> dict:
         """
         装饰器上指定的其它参数
@@ -111,3 +78,20 @@ class RouteMeta:
         :rtype: Dict
         """
         return self._kwargs
+
+    def has(self, arg_name):
+        """
+        指定的参数是否存在
+        :param arg_name:
+        :return:
+        """
+        return arg_name in self._kwargs
+
+    def get(self, arg_name: str, default_value=None):
+        """
+        获取指定参数的值
+        :param default_value:
+        :param arg_name:
+        :return:
+        """
+        return self._kwargs[arg_name] if arg_name in self._kwargs else default_value
