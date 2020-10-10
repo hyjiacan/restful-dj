@@ -1,3 +1,5 @@
+import os
+
 from django.conf import settings
 from django.urls import path
 
@@ -35,5 +37,14 @@ __all__ = [
     'dispatch'
 ]
 
+
+def register_template_dir():
+    template_conf = settings.TEMPLATES[0]
+    if 'DIRS' not in template_conf:
+        template_conf['DIRS'] = []
+
+    template_conf['DIRS'].append(os.path.join(os.path.dirname(__file__), 'templates'))
+
+
 if settings.DEBUG:
-    settings.INSTALLED_APPS.append('restful_dj')
+    register_template_dir()
