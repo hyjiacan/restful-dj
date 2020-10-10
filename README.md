@@ -217,15 +217,12 @@ ajax.get('test.demo/param?param1=1&param2=2&param3=3')
 声明为：
 
 ```python
-def route(module=None, name=None, permission=True, ajax=True, referer=None, **kwargs):
+def route(module=None, name=None, **kwargs):
     pass
 ```
 
 - `module` 此路由所属的业务/功能模块名称
 - `name` 此路由的名称
-- `permission` 设置此路由是否有权限控制
-- `ajax` 设置此路由是否仅允许 **ajax** 访问 *保留参数*
-- `referer` 设置此路由允许的 **referer** 地址 *保留参数*
 - `**kwargs` *额外参数*
 
 > 这些参数都会被传递给中间件的各个函数的参数 `meta`。详细见 [RouteMeta](#RouteMeta)
@@ -258,9 +255,6 @@ routes = restful_dj.collect()
 
 - module
 - name
-- permission
-- ajax
-- referer
 - kwargs
 - id
 - pkg # 路由所在包名称
@@ -477,30 +471,6 @@ class RouteMeta:
         return self._name
 
     @property
-    def permission(self) -> bool:
-        """
-        装饰器上指定的 permission 值
-        :return:
-        """
-        return self._permission
-
-    @property
-    def ajax(self) -> bool:
-        """
-        装饰器上指定的 ajax 值
-        :return:
-        """
-        return self._ajax
-
-    @property
-    def referer(self) -> str:
-        """
-        装饰器上指定的 referer 值
-        :return:
-        """
-        return self._referer
-
-    @property
     def kwargs(self) -> dict:
         """
         装饰器上指定的其它参数
@@ -509,6 +479,13 @@ class RouteMeta:
         """
         return self._kwargs
 ```
+
+另外，meta 还提供了 `has` 和 `get` 两个方法，其描述如下：
+
+- `has(arg_name)` 判断是否指定了额外参数
+- `get(arg_name, default_value=None)` 若存在指定名称的额外参数，则返回值，否则返回指定的默认值
+
+> 额外参数: 除 `name` 和 `module` 外的参数
 
 ## 待办事项
 
@@ -528,7 +505,9 @@ class RouteMeta:
 ### 2.0.0
 
 - 新的 `restful-dj` 启动方式
+- 修复 api 列表页面可能导致的异常问题
 - 移除 `DotDict` 支持
+- 移除 `@route` 的保留参数
 
 ### 1.0.3
 
