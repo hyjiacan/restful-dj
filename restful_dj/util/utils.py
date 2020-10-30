@@ -1,4 +1,5 @@
 import inspect
+import json
 import re
 from collections import OrderedDict
 
@@ -66,6 +67,22 @@ class ArgumentSpecification:
             return '%s: %s=%s' % (name, arg_type, default_value)
 
         return '%s: %s' % (name, arg_type)
+
+    class JsonEncoder(json.JSONEncoder):
+        def default(self, o):
+            if not isinstance(o, ArgumentSpecification):
+                return o
+            return {
+                'name': o.name,
+                'index': o.index,
+                'is_variable': o.is_variable,
+                'has_annotation': o.has_annotation,
+                'has_default': o.has_default,
+                'default': o.default,
+                'annotation_name': o.annotation_name,
+                'comment': o.comment,
+                'alias': o.alias
+            }
 
 
 def get_func_docs(func):

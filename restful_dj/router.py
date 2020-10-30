@@ -6,8 +6,8 @@ from django import shortcuts
 from django.conf import settings
 from django.http import HttpResponseNotFound, HttpResponseServerError, HttpRequest, HttpResponse
 
-from .util import collector, utils
 from .util import logger
+from .util import utils
 from .util.utils import load_module
 
 # 包名称
@@ -20,9 +20,6 @@ _BEFORE_DISPATCH_HANDLER = None
 
 # 线上模式时，使用固定路由
 PRODUCTION_ROUTES = {}
-
-# 开发模式的模块缓存，用于API列表
-MODULES_CACHE = None
 
 # 路由映射表，其键为请求的路径，其值为映射的目录
 ROUTES_MAP = {}
@@ -87,49 +84,6 @@ def redirect(request, entry, name=''):
     :return:
     """
     return shortcuts.redirect(request.path.rstrip('/'))
-
-
-def render_list(request):
-    if not settings.DEBUG:
-        return HttpResponseNotFound()
-
-    global MODULES_CACHE
-
-    prefix = '%s://%s%s' % (request.scheme, request.META.get('HTTP_HOST'), request.path)
-
-    if MODULES_CACHE is None:
-        routes = collector.collect()
-
-        modules = {}
-
-        for route in routes:
-            module = route['module']
-
-            p = route['path']
-            suffix = ''
-            temp = p.split('/')
-            entry = temp[0]
-            if len(temp) == 2:
-                suffix = temp[1]
-
-            router = Router(request, route['method'], entry, suffix)
-            router.check()
-            define = router.get_func_define()
-            if define and len(define['args']) > 0:
-                route['args'] = [define['args'][arg] for arg in define['args']]
-            else:
-                route['args'] = None
-
-            if module in modules:
-                modules[module].append(route)
-            else:
-                modules[module] = [route]
-        MODULES_CACHE = modules
-
-    return shortcuts.render(request, 'restful_dj_api_list_template.html', {
-        'modules': MODULES_CACHE,
-        'prefix': prefix
-    })
 
 
 def dispatch(request, entry, name=''):
