@@ -387,26 +387,17 @@
           xhr.setRequestHeader('requested-with', 'XmlHttpRequest')
           xhr.send(data)
         }
+      })()
 
-        var all
-        var apis
+      var all
 
-        function getAll() {
-          if (all) {
-            return all
-          }
-          all = document.body.querySelectorAll('details')
+      function getAll() {
+        if (all) {
           return all
         }
-
-        function getApis() {
-          if (apis) {
-            return apis
-          }
-          apis = document.body.querySelectorAll('li.api-item')
-          return apis
-        }
-      })()
+        all = document.body.querySelectorAll('details')
+        return all
+      }
 
       function collapseAll() {
         getAll().forEach(function (item) {
