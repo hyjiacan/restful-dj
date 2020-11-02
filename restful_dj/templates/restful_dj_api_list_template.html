@@ -406,19 +406,19 @@
           apis = document.body.querySelectorAll('li.api-item')
           return apis
         }
-
-        function collapseAll() {
-          getAll().forEach(function (item) {
-            item.removeAttribute('open')
-          })
-        }
-
-        function expandAll() {
-          getAll().forEach(function (item) {
-            item.setAttribute('open', '')
-          })
-        }
       })()
+
+      function collapseAll() {
+        getAll().forEach(function (item) {
+          item.removeAttribute('open')
+        })
+      }
+
+      function expandAll() {
+        getAll().forEach(function (item) {
+          item.setAttribute('open', '')
+        })
+      }
     </script>
   </body>
 </html>
