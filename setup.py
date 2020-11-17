@@ -1,6 +1,6 @@
 import setuptools
 
-VERSION = '2.0.0-beta2'
+VERSION = '2.0.0'
 
 with open("README.md", "r", encoding="utf8") as fh:
     long_description = fh.read()
@@ -21,6 +21,10 @@ setuptools.setup(
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
+        "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
+        "Topic :: Internet :: WWW/HTTP :: WSGI",
+        "Topic :: Internet :: WWW/HTTP :: WSGI :: Application",
+        "Topic :: Software Development :: Libraries :: Application Frameworks"
     ],
     python_requires='>=3.5',
 )
