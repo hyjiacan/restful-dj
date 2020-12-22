@@ -120,7 +120,7 @@ def _process_json_params(request):
     request.G = {}
     request.P = {}
 
-    if request.content_type != 'application/json':
+    if request.content_type is None or 'application/json' not in request.content_type:
         request.G = request.GET.dict()
         request.P = request.POST.dict()
         return
